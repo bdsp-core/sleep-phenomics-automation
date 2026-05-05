@@ -1,0 +1,19 @@
+services:
+  spikenet2:
+    shm_size: '2gb'
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5001:5000"
+    volumes:
+      - ../data:/app/data
+      - ../models/implementations/spikenet2:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped

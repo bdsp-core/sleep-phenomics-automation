@@ -1,0 +1,6 @@
+dockers/
+data/
+__pycache__/
+*~
+*.tar.gz
+.DS_Store

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation Mapping</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 32px 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            padding: 36px 40px;
+            box-shadow: 0 2px 14px rgba(0,0,0,0.09);
+        }
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 4px;
+            color: #1a1a2e;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 13px;
+            margin: 0 0 28px;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 13px;
+        }
+        .row label {
+            font-size: 14px;
+            color: #444;
+            width: 220px;
+            flex-shrink: 0;
+        }
+        input[type="text"] {
+            padding: 5px 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 100px;
+        }
+        input[type="number"] {
+            padding: 5px 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 70px;
+        }
+        select {
+            padding: 5px 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            background: #fff;
+            flex: 1;
+        }
+        input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: #4a90e2;
+        }
+        input:disabled {
+            background: #f0f0f0;
+            color: #aaa;
+            border-color: #ddd;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #eaecf2;
+            margin: 20px 0;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin: 0 0 12px;
+        }
+        .btn-row {
+            margin-top: 28px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .btn-primary {
+            background: #4a90e2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 26px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary:hover { background: #357abd; }
+        .btn-secondary {
+            background: #fff;
+            color: #555;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 10px 22px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary:hover { background: #f5f5f5; }
+        #unmapped-tip {
+            font-size: 13px;
+            color: #e05;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Annotation Mapping</h1>
+    <p class="subtitle">
+        <strong>{{ annot_file }}</strong>
+    </p>
+
+    <form id="annotForm" method="POST" action="{{ url_for('viewer.apply_annotation') }}">
+        <input type="hidden" name="annot_file" value="{{ annot_file }}">
+        <input type="hidden" name="edf_file"   value="{{ edf_file }}">
+
+        {% if is_txt %}
+        <div class="row">
+            <label for="separator">Column separator</label>
+            <input type="text" id="separator" name="separator" value=",">
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <label for="onset_col">Onset column</label>
+            <input type="number" id="onset_col" name="onset_col" value="1" min="1" step="1">
+        </div>
+
+        <div class="row">
+            <label for="onset_coding">Onset time coding is</label>
+            <select id="onset_coding" name="onset_coding">
+                <option value="seconds">in seconds relative to recording start</option>
+                <option value="time_no_date">time without date</option>
+                <option value="time_with_date">time with date</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <label>Duration column</label>
+            <input type="checkbox" id="use_duration" name="use_duration" checked
+                   onchange="onDurationCheck(this)">
+            <input type="number" id="duration_col" name="duration_col" value="2" min="1" step="1">
+        </div>
+
+        <div class="row">
+            <label>End column</label>
+            <input type="checkbox" id="use_end" name="use_end"
+                   onchange="onEndCheck(this)">
+            <input type="number" id="end_col" name="end_col" value="3" min="1" step="1" disabled>
+        </div>
+
+        <div class="row">
+            <label for="stage_col">Description column</label>
+            <input type="number" id="stage_col" name="stage_col" value="3" min="1" step="1">
+        </div>
+
+        <div class="row">
+            <label for="data_start_line">Data starts at line</label>
+            <input type="number" id="data_start_line" name="data_start_line" value="2" min="1" step="1">
+        </div>
+
+        <hr class="divider">
+        <p class="section-title">Sleep Stage Mapping</p>
+
+        {% for stage in ['W', 'R', 'N1', 'N2', 'N3'] %}
+        <div class="row">
+            <label for="stage_{{ stage }}">{{ stage }} in annotation</label>
+            <input type="text" id="stage_{{ stage }}" name="stage_{{ stage }}" value="{{ stage }}">
+        </div>
+        {% endfor %}
+
+        <div class="btn-row">
+            <button type="submit" class="btn-primary">Continue</button>
+            <a href="{{ url_for('viewer.index', selected=edf_file) }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('annotForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch(this.action, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { alert('Error: ' + data.error); return; }
+                window.location.href = '/viewer/?selected=' + encodeURIComponent(data.edf_file) + '&annotation_loaded=1&annot_file=' + encodeURIComponent('{{ annot_file }}');
+            })
+            .catch(() => alert('Failed to apply annotation mapping.'));
+    });
+
+    // Restrict number inputs to positive integers only
+    document.querySelectorAll('input[type="number"]').forEach(function(el) {
+        el.addEventListener('keydown', function(e) {
+            const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+            if (allowed.includes(e.key)) return;
+            if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+        });
+        el.addEventListener('input', function() {
+            const v = parseInt(this.value, 10);
+            if (isNaN(v) || v < 1) this.value = 1;
+            else this.value = v;
+        });
+    });
+
+    function onDurationCheck(cb) {
+        document.getElementById('duration_col').disabled = !cb.checked;
+        if (cb.checked) {
+            document.getElementById('use_end').checked = false;
+            document.getElementById('end_col').disabled = true;
+        }
+    }
+    function onEndCheck(cb) {
+        document.getElementById('end_col').disabled = !cb.checked;
+        if (cb.checked) {
+            document.getElementById('use_duration').checked = false;
+            document.getElementById('duration_col').disabled = true;
+        }
+    }
+</script>
+</body>
+</html>

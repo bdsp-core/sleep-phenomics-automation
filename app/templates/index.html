@@ -1,0 +1,1711 @@
+<!DOCTYPE html> 
+<html>
+	<head>
+		<title>Sleep Phenomics Automation (SPA)</title>
+		<style>
+            /* Global Styles */
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                margin: 0;
+                padding: 20px;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            /* Main Content Container */
+            .main-content {
+                width: 100%;
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+            
+            /* Floating Tile Base Style */
+            .tile {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                padding: 20px;
+                margin: 15px 0;
+                transition: all 0.3s ease;
+            }
+            
+            .tile:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            }
+            
+            /* Control Panel Tile */
+            .control-panel-tile {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                padding: 25px;
+                margin: 15px auto;
+                transition: all 0.3s ease;
+                max-width: 1200px;
+                width: fit-content;
+            }
+            
+            /* Visualization Tiles */
+            .visualization-tile {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                padding: 20px;
+                margin: 15px 0;
+                transition: all 0.3s ease;
+            }
+            
+            .visualization-tile:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+            }
+            
+            /* Visualization Container */
+            .visualization-container {
+                display: flex;
+                gap: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: stretch;
+            }
+            
+            /* PSG Plot Tile Specific */
+            .psg-tile {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            /* Auto-sizing for PSG plot */
+            #myChart_eeg {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 400px;
+                flex: 1;
+            }
+            
+            /* Sync heights between tiles */
+            .visualization-container {
+                align-items: stretch;
+            }
+            
+            /* Professional Color Scheme */
+            :root {
+                --primary-blue: #4A90E2;
+                --secondary-blue: #7FB3D3;
+                --accent-slate: #5D6D7E;
+                --light-gray: #F8F9FA;
+                --medium-gray: #E9ECEF;
+                --dark-gray: #495057;
+                --success-green: #28A745;
+                --warning-amber: #FFC107;
+                --danger-red: #DC3545;
+                --white: #FFFFFF;
+            }
+            
+            .hovertext {
+                display: none !important;
+            }
+            
+            .logout-container {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .logout-button {
+                background: var(--danger-red);
+                color: var(--white);
+                padding: 10px 20px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+                font-size: 14px;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+            }
+
+            .logout-button:hover {
+                background: #c82333;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+            }
+
+            .contact-button {
+                background: var(--primary-blue);
+                color: var(--white);
+                padding: 10px 20px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+                font-size: 14px;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+            }
+
+            .contact-button:hover {
+                background: #2176cc;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+            }
+
+            /* Contact modal overlay */
+            #contactOverlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
+                background: rgba(0, 0, 0, 0.35);
+                align-items: center;
+                justify-content: center;
+            }
+            #contactOverlay.active {
+                display: flex;
+            }
+            #contactBox {
+                background: rgba(255, 255, 255, 0.97);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                padding: 32px 40px;
+                min-width: 320px;
+                text-align: center;
+                position: relative;
+            }
+            #contactBox h3 {
+                margin: 0 0 16px 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--dark-gray);
+            }
+            #contactBox p {
+                margin: 4px 0;
+                font-size: 14px;
+                color: #444;
+                line-height: 1.6;
+            }
+            #contactClose {
+                margin-top: 20px;
+                padding: 8px 24px;
+                background: var(--primary-blue);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            #contactClose:hover {
+                background: #2176cc;
+            }
+            
+            .delete-button {
+                background: var(--warning-amber);
+                color: var(--dark-gray);
+                padding: 8px 16px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
+            
+            .delete-button:hover {
+                background: #e0a800;
+                transform: translateY(-1px);
+            }
+
+            .delete-button:disabled {
+                background: #adb5bd;
+                color: var(--white);
+                cursor: not-allowed;
+                transform: none;
+            }
+            
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+                backdrop-filter: blur(5px);
+                overflow-y: auto;
+            }
+
+            .modal-content {
+                background: var(--white);
+                margin: 20px auto;
+                padding: 30px;
+                border-radius: 12px;
+                width: 400px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .modal-buttons {
+                margin-top: 25px;
+                text-align: right;
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+            }
+            
+            .modal-buttons button {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
+            
+            .confirm-delete {
+                background: var(--danger-red);
+                color: var(--white);
+            }
+            
+            .confirm-delete:hover {
+                background: #c82333;
+            }
+            
+            .cancel-delete {
+                background: var(--medium-gray);
+                color: var(--dark-gray);
+            }
+            
+            .cancel-delete:hover {
+                background: #dee2e6;
+            }
+            
+            .replace-button {
+                background: var(--primary-blue);
+                color: var(--white);
+            }
+            
+            .replace-button:hover {
+                background: #357abd;
+            }
+            
+            .rename-button {
+                background: var(--success-green);
+                color: var(--white);
+            }
+            
+            .rename-button:hover {
+                background: #218838;
+            }
+            
+            .privacy-warning .modal-content {
+                width: 500px;
+                max-width: 90vw;
+            }
+            
+            .warning-icon {
+                font-size: 32px;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+            
+            .confirm-upload {
+                background: var(--danger-red);
+                color: var(--white);
+                font-weight: 600;
+            }
+            
+            .confirm-upload:hover {
+                background: #c82333;
+                transform: translateY(-1px);
+            }
+            
+            .privacy-warning-content ul li {
+                margin-bottom: 8px;
+            }
+            
+            .page-size-buttons {
+                margin: 20px 0;
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            
+            .page-size-buttons label {
+                font-weight: 600;
+                color: var(--dark-gray);
+                margin-right: 10px;
+            }
+            
+            .page-size-btn {
+                padding: 10px 18px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                font-size: 14px;
+            }
+            
+            .page-size-btn.active {
+                background: var(--primary-blue);
+                color: var(--white);
+                box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+            }
+            
+            .page-size-btn.inactive {
+                background: var(--medium-gray);
+                color: var(--dark-gray);
+            }
+            
+            .page-size-btn:hover {
+                transform: translateY(-1px);
+            }
+            
+            .page-size-btn.active:hover {
+                box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+            }
+            
+            .page-size-btn.inactive:hover {
+                background: var(--secondary-blue);
+                color: var(--white);
+            }
+            
+            /* Form Controls Styling */
+            select, input[type="file"], button {
+                padding: 8px 12px;
+                border: 1px solid var(--medium-gray);
+                border-radius: 6px;
+                font-size: 14px;
+                transition: all 0.3s ease;
+            }
+            
+            select:focus, input[type="file"]:focus {
+                outline: none;
+                border-color: var(--primary-blue);
+                box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+            }
+            
+            button {
+                background: var(--primary-blue);
+                color: var(--white);
+                border: none;
+                cursor: pointer;
+                font-weight: 500;
+            }
+            
+            button:hover {
+                background: var(--secondary-blue);
+                transform: translateY(-1px);
+            }
+            
+            /* Table Styling */
+            #button_list {
+                width: 100%;
+                border-spacing: 0;
+            }
+            
+            #button_list td {
+                padding: 5px 10px;
+                vertical-align: middle;
+            }
+            
+            #button_list label {
+                font-weight: 500;
+                color: var(--dark-gray);
+                margin-right: 8px;
+            }
+            
+            /* Phenomics help button */
+            .pheno-help {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                border: 1.5px solid var(--primary-blue);
+                background: transparent;
+                color: var(--primary-blue);
+                font-size: 10px;
+                font-weight: 700;
+                line-height: 1;
+                cursor: pointer;
+                flex-shrink: 0;
+                padding: 0;
+                transition: background 0.15s, color 0.15s;
+            }
+            .pheno-help:hover {
+                background: var(--primary-blue);
+                color: #fff;
+            }
+
+            /* Loading Indicator */
+            #loading_Indicator {
+                background: var(--primary-blue);
+                color: var(--white);
+                padding: 15px 25px;
+                border-radius: 8px;
+                margin: 20px 0;
+                text-align: center;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+            }
+
+            /* Upload Progress Overlay */
+            #uploadProgressOverlay,
+            #queueNotificationOverlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
+                background: rgba(0, 0, 0, 0.35);
+                align-items: center;
+                justify-content: center;
+            }
+            #uploadProgressOverlay.active,
+            #queueNotificationOverlay.active {
+                display: flex;
+            }
+            #queueNotificationContainer {
+                background: #fff;
+                border-radius: 14px;
+                padding: 32px 40px;
+                min-width: 320px;
+                max-width: 480px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+                text-align: center;
+            }
+            #queueNotificationText {
+                color: var(--dark-gray);
+                font-weight: 600;
+                margin-bottom: 20px;
+                font-size: 15px;
+                line-height: 1.6;
+            }
+            #queueNotificationOK {
+                background: var(--primary-blue);
+                color: var(--white);
+                border: none;
+                border-radius: 6px;
+                padding: 10px 28px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background 0.2s ease;
+            }
+            #queueNotificationOK:hover {
+                background: #357abd;
+            }
+            #uploadProgressContainer {
+                background: #fff;
+                border-radius: 14px;
+                padding: 32px 40px;
+                min-width: 320px;
+                max-width: 480px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+                text-align: center;
+            }
+            #uploadProgressLabel {
+                color: var(--dark-gray);
+                font-weight: 600;
+                margin-bottom: 16px;
+                font-size: 15px;
+            }
+            #uploadProgressBar {
+                width: 100%;
+                height: 12px;
+                border-radius: 6px;
+                overflow: hidden;
+                background: #dde4ee;
+            }
+            #uploadProgressFill {
+                height: 100%;
+                width: 0%;
+                background: var(--primary-blue);
+                border-radius: 6px;
+                transition: width 0.2s ease;
+            }
+        </style>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
+		<script src="/static/script.js"></script>
+		
+		<script>
+            // Variable to track the currently displayed file
+            let currentlyDisplayedFile = null;
+            let _currentAnnotFile = '';
+
+            function _updateFileLabel() {
+                const edf = document.getElementById('currentFile').value;
+                const annot = _currentAnnotFile || 'NONE';
+                document.getElementById('currentFileLabel').textContent =
+                    'EDF: ' + edf + '\u00a0\u00a0\u00a0Annotation: ' + annot;
+            }
+
+            function showFileButtons(filename) {
+                resetStagingToCAISR();
+                _updateFileLabel();
+                document.getElementById('fileInfoRow').style.display = 'flex';
+                document.getElementById('downloadPhenotypes').textContent = 'Compute Phenomics';
+                document.getElementById('downloadPhenotypes').disabled = false;
+                document.getElementById('downloadDetections').style.display = 'none';
+                document.getElementById('phenomicsOptions').style.display = 'block';
+                document.getElementById('uploadAnnotationBtn').style.display = 'inline-block';
+                document.getElementById('exampleAnnotationBtn').style.display = 'inline-block';
+                window._phenomicsJobId = null;
+            }
+
+            function hideFileButtons() {
+                document.getElementById('currentFile').value = '';
+                _currentAnnotFile = '';
+                resetStagingToCAISR();
+                document.getElementById('fileInfoRow').style.display = 'none';
+                document.getElementById('downloadPhenotypes').style.display = 'none';
+                document.getElementById('downloadDetections').style.display = 'none';
+                document.getElementById('phenomicsOptions').style.display = 'none';
+                document.getElementById('uploadAnnotationBtn').style.display = 'none';
+                document.getElementById('exampleAnnotationBtn').style.display = 'none';
+                window._phenomicsJobId = null;
+            }
+            
+            function openDeleteModal() {
+                const selectedFile = document.getElementById('currentFile').value;
+                if (selectedFile) {
+                    document.getElementById('fileToDelete').textContent = selectedFile;
+                    document.getElementById('deleteModal').style.display = "block";
+                }
+            }
+            
+            function closeDeleteModal() {
+                document.getElementById('deleteModal').style.display = "none";
+            }
+            
+            function resetViewer() {
+                // Clear the EEG chart (Plotly version)
+                Plotly.purge('myChart_eeg');
+                
+                
+                // Clear the report section
+                const reportCell = document.getElementById('report_cell');
+                if (reportCell) {
+                    reportCell.innerHTML = '';
+                }
+                
+                // No longer handling report mode
+                
+                // Reset global variables
+                resetGlobalVariables();
+                
+                // Update UI to reflect no file is selected
+                currentlyDisplayedFile = null;
+                
+                console.log("Viewer reset completed");
+            }
+            
+            function confirmDelete() {
+                const selectedFile = document.getElementById('currentFile').value;
+                if (selectedFile) {
+                    fetch('/viewer/delete_file', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filename: selectedFile, annot_file: _currentAnnotFile || null })
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            _uploadedFiles.delete(selectedFile);
+                            hideFileButtons();
+                            resetViewer();
+                            closeDeleteModal();
+                        } else {
+                            throw new Error('Failed to delete file');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("Error deleting file: " + error.message);
+                        closeDeleteModal();
+                    });
+                }
+            }
+            
+            function initializeWrapper() {
+                currentlyDisplayedFile = document.getElementById('currentFile').value;
+                gain = 0.005;
+                channelGains = {};
+                pendingJumpTime = null;
+                pendingAutoScale = true;
+                initialize();
+            }
+            
+            // Privacy Warning Modal Functions
+            function showPrivacyWarning() {
+                document.getElementById('privacyWarningModal').style.display = "block";
+            }
+            
+            function closePrivacyWarningModal() {
+                document.getElementById('privacyWarningModal').style.display = "none";
+                // Reset file input
+                document.getElementById('fileUpload').value = '';
+            }
+            
+            function confirmPrivacyAndUpload() {
+                document.getElementById('privacyWarningModal').style.display = "none";
+                // Proceed with the actual file upload process
+                proceedWithFileUpload();
+            }
+            
+            // Annotation Upload Handling
+            function handleAnnotationUpload(event) {
+                const fileInput = document.getElementById('annotationUpload');
+                if (fileInput.files.length === 0) return;
+                const edfFilename = document.getElementById('currentFile').value;
+                const formData = new FormData();
+                formData.append('annotation_file', fileInput.files[0]);
+                formData.append('edf_filename', edfFilename);
+                fetch('/viewer/upload_annotation', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else if (data.error) {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(() => alert('Failed to upload annotation file.'));
+                fileInput.value = '';
+            }
+
+            // File Upload Handling
+            function handleFileUpload(event) {
+                event.preventDefault();
+                
+                const fileInput = document.getElementById('fileUpload');
+                
+                // Check if a file is selected
+                if (fileInput.files.length === 0) {
+                    alert("Please select a file to upload");
+                    return;
+                }
+                
+                // Show privacy warning modal first
+                showPrivacyWarning();
+            }
+            
+            // Actual file upload process (called after privacy confirmation)
+            function proceedWithFileUpload() {
+                const fileInput = document.getElementById('fileUpload');
+                const fileName = fileInput.files[0]?.name || '';
+
+                // Check for duplicates instantly using the server-rendered file list —
+                // no network round-trip, so the progress bar appears without delay.
+                if (_uploadedFiles.has(fileName)) {
+                    document.getElementById('duplicateFileName').textContent = fileName;
+                    document.getElementById('duplicateFileModal').style.display = "block";
+                } else {
+                    submitFileUpload("new");
+                }
+            }
+            
+            function closeDuplicateModal() {
+                document.getElementById('duplicateFileModal').style.display = "none";
+            }
+            
+            function submitFileUpload(action) {
+                const formData = new FormData(document.getElementById('uploadForm'));
+                formData.append('action', action);
+
+                // Close modal if open
+                closeDuplicateModal();
+
+                // Show upload progress bar
+                const progressOverlay = document.getElementById('uploadProgressOverlay');
+                const progressFill = document.getElementById('uploadProgressFill');
+                const progressLabel = document.getElementById('uploadProgressLabel');
+                const fileName = document.getElementById('fileUpload').files[0]?.name || 'file';
+                progressFill.style.width = '0%';
+                progressLabel.textContent = 'Uploading ' + fileName + '… 0%';
+                progressOverlay.classList.add('active');
+
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressLabel.textContent = 'Uploading ' + fileName + '… ' + pct + '%';
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    progressOverlay.classList.remove('active');
+                    if (xhr.responseURL && xhr.responseURL !== window.location.href) {
+                        window.location.href = xhr.responseURL;
+                    } else if (xhr.status >= 400) {
+                        alert("Error uploading file: " + xhr.responseText);
+                    } else {
+                        window.location.href = xhr.responseURL || window.location.href;
+                    }
+                });
+
+                xhr.addEventListener('error', function() {
+                    progressOverlay.classList.remove('active');
+                    alert("Error uploading file. Please try again.");
+                });
+
+                xhr.open('POST', '/viewer/upload');
+                xhr.send(formData);
+            }
+            
+            const TURBO = [
+                [0.00, 'rgb(48,18,59)'],   [0.07, 'rgb(70,56,170)'],
+                [0.13, 'rgb(56,99,222)'],  [0.20, 'rgb(35,148,235)'],
+                [0.27, 'rgb(22,186,212)'], [0.33, 'rgb(29,217,173)'],
+                [0.40, 'rgb(80,239,120)'], [0.47, 'rgb(149,251,70)'],
+                [0.53, 'rgb(215,246,29)'], [0.60, 'rgb(252,210,18)'],
+                [0.67, 'rgb(252,165,10)'], [0.73, 'rgb(241,114,6)'],
+                [0.80, 'rgb(217,67,3)'],   [0.87, 'rgb(182,26,3)'],
+                [0.93, 'rgb(143,5,5)'],    [1.00, 'rgb(94,0,0)'],
+            ];
+
+            function fetchAndPlotHypnoSpectrogram(jobId) {
+                fetch('/viewer/phenotypes_viz_data/' + jobId)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) return;
+
+                        const epochSec        = data.epoch_sec || 30;
+                        const ss              = data.sleep_stages || [];
+                        const hasStages       = ss.length > 0;
+                        const hasSpectro      = !!(data.psd_db && data.freq && data.psd_db.length > 0);
+                        const hasHypnodensity = !!(data.hypnodensity && data.hypnodensity.t && data.hypnodensity.t.length > 0);
+                        const apneas     = data.apnea   || [];
+                        const arousals   = data.arousal || [];
+                        const plms       = data.plm     || [];
+
+                        if (!hasStages && !hasSpectro) return;
+
+                        // Total epoch count and time axis
+                        let nEpochs = ss.length;
+                        if (hasSpectro && data.psd_db[0])
+                            nEpochs = Math.max(nEpochs, data.psd_db[0].length);
+                        const totalHours = nEpochs * epochSec / 3600;
+                        const times = Array.from({length: nEpochs}, (_, i) => i * epochSec / 3600);
+
+                        // Build panels bottom→top: spectro?, hypnodensity?, plm?, arousal?, apnea?, hypno
+                        const gap = 0.018, smallH = 0.034;
+                        // Reduce spectrogram height to make room for hypnodensity panel
+                        const spectroH = hasHypnodensity ? 0.50 : 0.68;
+                        const panelOrder = [];
+                        if (hasSpectro)         panelOrder.push({ key: 'spectro',      h: spectroH });
+                        if (hasHypnodensity)    panelOrder.push({ key: 'hypnodensity', h: 0 }); // height set after hypnoH computed
+                        if (plms.length)        panelOrder.push({ key: 'plm',     h: smallH, label: 'PLM'     });
+                        if (arousals.length)    panelOrder.push({ key: 'arousal', h: smallH, label: 'Arousal' });
+                        if (apneas.length)      panelOrder.push({ key: 'apnea',   h: smallH, label: 'Apnea'   });
+                        const usedH = panelOrder.reduce((s, p) => s + p.h + gap, 0);
+                        // Hypnogram: fixed small height when spectrogram is present, full height otherwise
+                        const hypnoH = hasSpectro ? 0.176 : Math.max(0.24, 1.0 - usedH);
+                        if (hasHypnodensity) panelOrder.find(p => p.key === 'hypnodensity').h = hypnoH;
+                        panelOrder.push({ key: 'hypno', h: hypnoH });
+
+                        // Assign [bottom, top] domains, then normalise so top panel reaches 1.0
+                        const domains = {};
+                        let cur = 0;
+                        for (const p of panelOrder) {
+                            domains[p.key] = [cur, cur + p.h];
+                            cur += p.h + gap;
+                        }
+                        const topEdge = Math.max(...Object.values(domains).map(d => d[1]));
+                        if (topEdge > 0 && topEdge < 0.99) {
+                            for (const key of Object.keys(domains))
+                                domains[key] = [domains[key][0] / topEdge, domains[key][1] / topEdge];
+                        }
+
+                        const traces = [], yaxes = {};
+                        let yIdx = 1;
+
+                        // --- Hypnogram (y1, top panel) ---
+                        if (hasStages) {
+                            const last = ss.length - 1;
+                            const hX = [...times.slice(0, ss.length), times[last] + epochSec / 3600];
+                            const hY = [...ss, ss[last]];
+                            traces.push({ x: hX, y: hY, mode: 'lines',
+                                line: { shape: 'hv', color: '#333', width: 1.5 },
+                                xaxis: 'x', yaxis: 'y' + yIdx, showlegend: false });
+                        }
+                        yaxes['yaxis' + yIdx] = {
+                            domain: domains['hypno'], anchor: 'x',
+                            tickvals: [1,2,3,4,5], ticktext: ['N3','N2','N1','R','W'],
+                            range: [0.5, 5.5], showgrid: true, gridcolor: '#ddd',
+                        };
+                        yIdx++;
+
+                        // --- Hypnodensity (stacked probability area) ---
+                        if (hasHypnodensity) {
+                            const hd = data.hypnodensity;
+                            const hdOrder  = ['r',  'w',   'n1',  'n2', 'n3'];
+                            const hdColors = {
+                                r:  'rgb(255,113,162)',
+                                w:  'rgb(159,159,159)',
+                                n1: 'rgb(252,255,28)',
+                                n2: 'rgb(0,137,11)',
+                                n3: 'rgb(0,208,253)',
+                            };
+                            const hdT   = hd.t;
+                            const cumY  = new Array(hdT.length).fill(0);
+                            let firstTrace = true;
+                            for (const stage of hdOrder) {
+                                const prob   = hd['prob_' + stage];
+                                const newCum = cumY.map((v, i) => v + (prob[i] || 0));
+                                traces.push({
+                                    x: hdT, y: newCum.slice(),
+                                    mode: 'lines',
+                                    line: { width: 0 },
+                                    fill: firstTrace ? 'tozeroy' : 'tonexty',
+                                    fillcolor: hdColors[stage],
+                                    xaxis: 'x', yaxis: 'y' + yIdx,
+                                    showlegend: false,
+                                });
+                                for (let i = 0; i < cumY.length; i++) cumY[i] = newCum[i];
+                                firstTrace = false;
+                            }
+                            yaxes['yaxis' + yIdx] = {
+                                domain: domains['hypnodensity'], anchor: 'x',
+                                range: [0, 1], showgrid: false, zeroline: false,
+                                tickvals: [0, 1], ticktext: ['0', '1'],
+                                title: { text: 'P(stage)', font: { size: 11 } },
+                            };
+                            yIdx++;
+                        }
+
+                        // --- Event bars helper ---
+                        function makeEventTrace(events, yKey) {
+                            const x = [], y = [];
+                            for (const ev of events) {
+                                x.push(ev.s, ev.s, ev.e, ev.e, null);
+                                y.push(-0.8, 0.8, 0.8, -0.8, null);
+                            }
+                            return { x, y, mode: 'lines', fill: 'toself', type: 'scatter',
+                                line: { width: 0, color: 'red' }, fillcolor: 'red',
+                                xaxis: 'x', yaxis: yKey, showlegend: false };
+                        }
+                        function smallAxis(domainKey, label) {
+                            return { domain: domains[domainKey], anchor: 'x', range: [-1, 1],
+                                tickvals: [0], ticktext: [label], showgrid: false, zeroline: false };
+                        }
+
+                        // --- Apnea ---
+                        if (apneas.length) {
+                            const yKey = 'y' + yIdx;
+                            traces.push(makeEventTrace(apneas, yKey));
+                            yaxes['yaxis' + yIdx] = smallAxis('apnea', 'Apnea');
+                            yIdx++;
+                        }
+                        // --- Arousal ---
+                        if (arousals.length) {
+                            const yKey = 'y' + yIdx;
+                            traces.push(makeEventTrace(arousals, yKey));
+                            yaxes['yaxis' + yIdx] = smallAxis('arousal', 'Arousal');
+                            yIdx++;
+                        }
+                        // --- PLM ---
+                        if (plms.length) {
+                            const yKey = 'y' + yIdx;
+                            traces.push(makeEventTrace(plms, yKey));
+                            yaxes['yaxis' + yIdx] = smallAxis('plm', 'PLM');
+                            yIdx++;
+                        }
+                        // --- Spectrogram (bottom panel) ---
+                        if (hasSpectro) {
+                            const yKey = 'y' + yIdx;
+                            traces.push({ z: data.psd_db, x: times, y: data.freq,
+                                type: 'heatmap', colorscale: TURBO, zmin: -5, zmax: 22,
+                                xaxis: 'x', yaxis: yKey, showscale: false });
+                            yaxes['yaxis' + yIdx] = { domain: domains['spectro'], anchor: 'x',
+                                title: 'Frequency (Hz)', range: [0.3, 25] };
+                            yIdx++;
+                        }
+
+                        // X-axis ticks; anchor to bottom-most y-axis
+                        const bottomYAxis = 'y' + (yIdx - 1);
+                        const recDate = data.recording_date ? new Date(data.recording_date) : null;
+                        const tickvals = [], ticktext = [];
+                        for (let h = 0; h <= Math.ceil(totalHours); h++) {
+                            tickvals.push(h);
+                            if (recDate) {
+                                const t = new Date(recDate.getTime() + h * 3600000);
+                                ticktext.push(String(t.getHours()).padStart(2,'0') + ':' +
+                                              String(t.getMinutes()).padStart(2,'0'));
+                            } else {
+                                ticktext.push(h + 'h');
+                            }
+                        }
+
+                        const layout = {
+                            height: hasHypnodensity ? 600 : 480,
+                            margin: { t: 10, l: 55, r: 20, b: 50 },
+                            showlegend: false,
+                            xaxis: { tickvals, ticktext, anchor: bottomYAxis },
+                            ...yaxes,
+                            paper_bgcolor: 'rgba(0,0,0,0)',
+                            plot_bgcolor:  'rgba(0,0,0,0)',
+                        };
+
+                        document.getElementById('hypno_container').style.display = 'block';
+                        Plotly.newPlot('hypnoSpectrogramPlot', traces, layout,
+                                       { displayModeBar: false, responsive: true });
+
+                        // --- CPC Mountain Plot ---
+                        if (data.cpc_spectrogram) {
+                            const spec    = data.cpc_spectrogram;
+                            const cpcTt   = spec.tt.map(t => t / 3600);  // seconds → hours
+                            const cpcFreq = spec.freq;
+                            const cpcMat  = spec.cpc;  // [n_windows][n_freqs]
+
+                            const cpcTraces = [];
+                            // Iterate from highest to lowest frequency (matching reference plot order)
+                            for (let ii = cpcFreq.length - 1; ii >= 0; ii--) {
+                                const f = cpcFreq[ii];
+                                let fillColor;
+                                if (f <= 0.01)     fillColor = 'rgba(239,173,101,0.7)';  // VLF — orange
+                                else if (f <= 0.1) fillColor = 'rgba(84,151,191,0.7)';   // LF  — light blue
+                                else               fillColor = 'rgba(50,94,177,0.7)';    // HF  — dark blue
+
+                                // Build a closed polygon: forward at y=f+cpc, backward at y=f (baseline)
+                                const yTop  = cpcMat.map(row => (row[ii] || 0) + f);
+                                const yBase = cpcTt.map(() => f);
+                                const xPoly = [...cpcTt, ...cpcTt.slice().reverse()];
+                                const yPoly = [...yTop,  ...yBase.slice().reverse()];
+
+                                cpcTraces.push({
+                                    x: xPoly, y: yPoly,
+                                    fill: 'toself', fillcolor: fillColor,
+                                    mode: 'lines',
+                                    line: { color: 'white', width: 0.3 },
+                                    showlegend: false, hoverinfo: 'skip'
+                                });
+                            }
+
+                            const cpcLayout = {
+                                height: 500,
+                                margin: { t: 10, l: 55, r: 20, b: 50 },
+                                showlegend: false,
+                                xaxis: { tickvals, ticktext, range: [0, totalHours] },
+                                yaxis: {
+                                    title: 'Frequency (Hz)',
+                                    range: [0, 0.4],
+                                    showgrid: true, gridcolor: '#ddd',
+                                },
+                                paper_bgcolor: 'rgba(0,0,0,0)',
+                                plot_bgcolor:  'rgba(0,0,0,0)',
+                            };
+
+                            document.getElementById('cpc_container').style.display = 'block';
+                            Plotly.newPlot('cpcMountainPlot', cpcTraces, cpcLayout,
+                                           { displayModeBar: false, responsive: true });
+                        }
+
+                        // --- Custom Figure ---
+                        if (data.custom_figure_json) {
+                            const fig = JSON.parse(data.custom_figure_json);
+                            document.getElementById('custom_figure_container').style.display = 'block';
+                            Plotly.newPlot('customFigurePlot', fig.data, fig.layout,
+                                           { displayModeBar: false, responsive: true });
+                        }
+                    });
+            }
+
+            function downloadDetections() {
+                if (!window._phenomicsJobId) {
+                    alert("Run phenomics computation first.");
+                    return;
+                }
+                window.location.href = '/viewer/phenotypes_download_npz/' + window._phenomicsJobId;
+            }
+
+            function setFileManagementDisabled(disabled) {
+                const ids = ['downloadPhenotypes', 'downloadDetections', 'deleteFile',
+                             'uploadAnnotationBtn', 'exampleAnnotationBtn', 'submitFile'];
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = disabled;
+                });
+                // Also disable the Use Example EDF link-button
+                const exampleEdfBtn = document.querySelector('a[href*="use_example"] button');
+                if (exampleEdfBtn) exampleEdfBtn.disabled = disabled;
+            }
+
+            function downloadPhenotypes() {
+                if (window._phenomicsJobId) {
+                    window.location.href = '/viewer/phenotypes_download/' + window._phenomicsJobId;
+                    return;
+                }
+                const selectedFile = document.getElementById('currentFile').value;
+                if (!selectedFile) {
+                    alert("Please upload a file first");
+                    return;
+                }
+
+                const btn = document.getElementById('downloadPhenotypes');
+                btn.textContent = 'Computing Phenomics';
+                btn.disabled = true;
+                setFileManagementDisabled(true);
+
+                const logPanel = document.getElementById('phenomicsLog');
+                const logText  = document.getElementById('phenomicsLogText');
+                logText.value  = '';
+                logPanel.style.display = 'block';
+
+                const formData = new FormData();
+                formData.append('filename', selectedFile);
+                formData.append('notch_freq', document.getElementById('notch_f').value);
+
+                // Collect selected phenomics features
+                document.querySelectorAll('.pheno-check:checked').forEach(cb => {
+                    formData.append('selected_features', cb.value);
+                });
+
+                // Annotation file (for from_annotation staging)
+                if (document.getElementById('fromAnnotationRadio').checked && _currentAnnotFile) {
+                    formData.append('annot_file', _currentAnnotFile);
+                }
+
+                // Actual age (for brain age computation)
+                const actualAgeVal = document.getElementById('actualAge').value.trim();
+                if (actualAgeVal) {
+                    formData.append('actual_age', actualAgeVal);
+                }
+
+                // Quality index (for spindle & slow oscillation)
+                formData.append('quality_index', document.getElementById('spindleQuality').value);
+
+                // Custom phenotype code + figure
+                const customCheck = document.getElementById('customPhenotypeCheck');
+                if (customCheck && customCheck.checked) {
+                    formData.append('custom_code', document.getElementById('customCode').value);
+                    if (document.getElementById('customFigureCheck').checked) {
+                        formData.append('custom_figure_code', document.getElementById('customFigureCode').value);
+                    }
+                }
+
+                fetch('/viewer/start_phenotypes', { method: 'POST', body: formData })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) {
+                            logText.value += 'Error: ' + data.error + '\n';
+                            btn.textContent = 'Compute Phenomics';
+                            btn.disabled = false;
+                            setFileManagementDisabled(false);
+                            return;
+                        }
+
+                        function showQueueNotification(position, maxJobs) {
+                            const overlay = document.getElementById('queueNotificationOverlay');
+                            const text = document.getElementById('queueNotificationText');
+                            text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically. You can leave the website at any time and the result will be sent to your email.`;
+                            overlay.classList.add('active');
+                        }
+
+                        function updateQueuePosition(position, maxJobs) {
+                            const overlay = document.getElementById('queueNotificationOverlay');
+                            const text = document.getElementById('queueNotificationText');
+                            if (overlay.classList.contains('active')) {
+                                text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically. You can leave the website at any time and the result will be sent to your email.`;
+                            }
+                        }
+
+                        if (data.queued) {
+                            showQueueNotification(data.position, data.max_jobs);
+                        }
+
+                        function connectSSE(job_id, maxJobs) {
+                            const es = new EventSource('/viewer/phenotypes_progress/' + job_id);
+
+                            es.addEventListener('queued', (e) => {
+                                updateQueuePosition(parseInt(e.data), maxJobs);
+                            });
+
+                            es.onmessage = (e) => {
+                                // First log message means the job has started — dismiss queue notification
+                                document.getElementById('queueNotificationOverlay').classList.remove('active');
+                                logText.value += e.data + '\n';
+                                logText.scrollTop = logText.scrollHeight;
+                            };
+
+                            es.addEventListener('done', () => {
+                                es.close();
+                                logText.value += 'Use the "Download Phenomics" button to get results.\n';
+                                logText.scrollTop = logText.scrollHeight;
+                                window._phenomicsJobId = job_id;
+                                btn.textContent = 'Download Phenomics';
+                                btn.disabled = false;
+                                setFileManagementDisabled(false);
+                                fetchAndPlotHypnoSpectrogram(job_id);
+                                document.getElementById('downloadDetections').disabled = false;
+
+                                // Auto-delete the EDF now that results are saved
+                                const fileToDelete = document.getElementById('currentFile').value;
+                                if (fileToDelete) {
+                                    fetch('/viewer/delete_file', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ filename: fileToDelete })
+                                    })
+                                    .then(() => {
+                                        document.getElementById('currentFile').value = '';
+                                        document.getElementById('currentFileLabel').style.display = 'none';
+                                        document.getElementById('deleteFile').style.display = 'none';
+                                        document.getElementById('fileDeletedMsg').style.display = 'inline';
+                                    })
+                                    .catch(() => {});
+                                }
+                            });
+
+                            es.addEventListener('error', (e) => {
+                                es.close();
+                                logText.value += 'Error: ' + (e.data || 'unknown') + '\n';
+                                logText.scrollTop = logText.scrollHeight;
+                                btn.textContent = 'Compute Phenomics';
+                                btn.disabled = false;
+                                setFileManagementDisabled(false);
+                            });
+
+                            es.onerror = () => {
+                                es.close();
+                                logText.value += 'Connection lost — reconnecting...\n';
+                                logText.scrollTop = logText.scrollHeight;
+                                setTimeout(() => connectSSE(job_id, maxJobs), 2000);
+                            };
+                        }
+                        connectSSE(data.job_id, data.max_jobs || 3);
+                    })
+                    .catch(err => {
+                        logText.value += 'Error: ' + err.message + '\n';
+                        btn.textContent = 'Compute Phenomics';
+                        btn.disabled = false;
+                        setFileManagementDisabled(false);
+                    });
+            }
+
+            function enableFromAnnotation(annotFilename) {
+                if (annotFilename) _currentAnnotFile = annotFilename;
+                _updateFileLabel();
+                const radio = document.getElementById('fromAnnotationRadio');
+                const lbl   = document.getElementById('fromAnnotationLabel');
+                radio.disabled = false;
+                radio.checked  = true;
+                lbl.style.color  = '';
+                lbl.style.cursor = '';
+            }
+
+            function resetStagingToCAISR() {
+                const radio = document.getElementById('fromAnnotationRadio');
+                const lbl   = document.getElementById('fromAnnotationLabel');
+                radio.disabled = true;
+                radio.checked  = false;
+                lbl.style.color  = '#aaa';
+                lbl.style.cursor = 'default';
+                document.getElementById('caisrRadio').checked = true;
+                updateUsleepInputs();
+            }
+
+            function updateSpindleQuality() {
+                const enabled = document.getElementById('spindleCheck').checked;
+                const input = document.getElementById('spindleQuality');
+                const row   = document.getElementById('spindleQualityRow');
+                input.disabled        = !enabled;
+                input.style.color      = enabled ? '' : '#aaa';
+                input.style.background = enabled ? '' : '#f5f5f5';
+                input.style.borderColor = enabled ? '' : '#ccc';
+                row.style.color        = enabled ? '' : '#aaa';
+            }
+
+            function updateCustomPhenotype() {
+                const enabled = document.getElementById('customPhenotypeCheck').checked;
+                document.getElementById('customCodeRow').style.display = enabled ? 'block' : 'none';
+                if (!enabled) {
+                    document.getElementById('customFigureCheck').checked = false;
+                    updateCustomFigure();
+                }
+            }
+
+            function updateCustomFigure() {
+                const enabled = document.getElementById('customFigureCheck').checked;
+                document.getElementById('customFigureRow').style.display = enabled ? 'block' : 'none';
+            }
+
+            function updateUsleepInputs() {
+                const enabled = document.getElementById('usleepRadio').checked;
+                const inputs = [
+                    document.getElementById('usleepTimeRes'),
+                    document.getElementById('usleepToken'),
+                ];
+                const rows = [
+                    document.getElementById('usleepTimeResRow'),
+                    document.getElementById('usleepTokenRow'),
+                ];
+                inputs.forEach((el, i) => {
+                    el.disabled = !enabled;
+                    el.style.color      = enabled ? '' : '#aaa';
+                    el.style.background = enabled ? '' : '#f5f5f5';
+                    el.style.borderColor = enabled ? '' : '#ccc';
+                    rows[i].style.color = enabled ? '' : '#aaa';
+                });
+            }
+
+            function useExampleAnnotation() {
+                fetch('/viewer/use_example_annotation')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) { alert('Error: ' + data.error); return; }
+                        enableFromAnnotation(data.annot_file);
+                    })
+                    .catch(() => alert('Failed to load example annotation.'));
+            }
+
+            // Files already uploaded by this user — used for instant client-side duplicate check
+            const _uploadedFiles = new Set({{ files | tojson }});
+
+            {% if selected %}
+            window.addEventListener('DOMContentLoaded', () => {
+                {% if annotation_loaded %}
+                _currentAnnotFile = {{ annot_file | tojson }};
+                {% endif %}
+                showFileButtons('{{ selected }}');
+                initializeWrapper();
+                {% if annotation_loaded %}
+                enableFromAnnotation();
+                {% endif %}
+                // Set default custom phenotype template
+                document.getElementById('customCode').value =
+`import numpy as np
+
+def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=None, log=print, n_jobs=1, **kwargs):
+    # signals: dict — keys 'eeg','ecg','eog','chin_emg','limb_emg','rip','nasalpressure','airflow','spo2'
+    #           each value is a 2D numpy array (n_channels, n_samples)
+    # fs:      dict — same keys, values are sampling rates (Hz)
+    # channels: dict — same keys, values are lists of channel names
+    # sleep_stages: 1D numpy array, values 1=N3 2=N2 3=N1 4=REM 5=Wake
+    feats   = {}  # {feature_name: scalar_value, ...}
+    detects = {}  # non-scalar detections (DataFrames, arrays, ...)
+    log('*** Hello SPA ***') # example print
+    return feats, detects`;
+                document.getElementById('customFigureCode').value =
+`def my_figure(feats, detects):
+    import plotly.graph_objects as go
+    fig = go.Figure()
+    # build figure using feats and detects
+    return fig`;
+            });
+            {% endif %}
+        </script>
+	</head>
+	<body> 
+		<div class="logout-container">
+			<button class="contact-button" onclick="document.getElementById('contactOverlay').classList.add('active')">Contact</button>
+			<a href="{{ url_for('auth.logout') }}">
+				<button class="logout-button">Logout</button>
+			</a>
+		</div>
+		
+		<div class="main-content">
+		
+		<!-- Delete Confirmation Modal -->
+		<div id="deleteModal" class="modal">
+			<div class="modal-content">
+				<h3>Confirm Deletion</h3>
+				<p>Are you sure you want to permanently delete the file "<span id="fileToDelete"></span>"?</p>
+				<p>This will also remove all associated derived files and cannot be undone.</p>
+				<div class="modal-buttons">
+					<button class="cancel-delete" onclick="closeDeleteModal()">Cancel</button>
+					<button class="confirm-delete" onclick="confirmDelete()">Delete</button>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Duplicate File Modal -->
+		<div id="duplicateFileModal" class="modal">
+			<div class="modal-content">
+				<h3>File Already Exists</h3>
+				<p>The file "<span id="duplicateFileName"></span>" already exists. What would you like to do?</p>
+				<div class="modal-buttons">
+					<button class="cancel-delete" onclick="closeDuplicateModal()">Cancel</button>
+					<button class="rename-button" onclick="submitFileUpload('rename')">Save As New Copy</button>
+					<button class="replace-button" onclick="submitFileUpload('replace')">Replace</button>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Privacy Warning Modal -->
+		<div id="privacyWarningModal" class="modal">
+			<div class="modal-content privacy-warning">
+				<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+					<div class="warning-icon">⚠️</div>
+					<h3 style="margin: 0; color: var(--danger-red); font-weight: 600;">DATA PRIVACY WARNING</h3>
+				</div>
+				<div class="privacy-warning-content">
+					<p style="font-weight: 600; color: var(--danger-red); margin-bottom: 15px;">
+						IMPORTANT: Before uploading your PSG/EDF file, ensure all personal health information has been removed or de-identified.
+					</p>
+					<ul style="margin: 15px 0; padding-left: 20px; line-height: 1.6;">
+						<li>Remove or anonymize patient names, dates of birth, and medical record numbers</li>
+						<li>Replace identifying information with study codes or anonymous identifiers</li>
+						<li>Verify recording dates do not contain personally identifiable information</li>
+						<li>Ensure no sensitive metadata is embedded in the file</li>
+					</ul>
+					<p style="font-weight: 500; margin: 15px 0; padding: 10px; background-color: rgba(220, 53, 69, 0.1); border-left: 3px solid var(--danger-red);">
+						<strong>Data Retention:</strong> All uploaded files and analysis results will be automatically deleted after your session ends for privacy protection.
+					</p>
+					<p style="font-size: 14px; color: var(--dark-gray); margin-top: 20px;">
+						By proceeding, you confirm that your data has been properly de-identified and complies with applicable privacy regulations (HIPAA, GDPR, etc.).
+					</p>
+				</div>
+				<div class="modal-buttons">
+					<button class="cancel-delete" onclick="closePrivacyWarningModal()">Cancel Upload</button>
+					<button class="confirm-upload" onclick="confirmPrivacyAndUpload()">I Understand - Proceed</button>
+				</div>
+			</div>
+		</div>
+		
+		<!-- File Management Tile -->
+		<div class='visualization-tile'>
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+				<img src="{{ url_for('static', filename='images/spa_logo.png') }}" style="height: 2em; width: auto;">
+				File Management
+			</h3>
+			<!-- Row 1: upload/example buttons -->
+			<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+				<input type="hidden" id="currentFile" value="{{ selected }}">
+
+				<!-- EDF buttons -->
+				<form id="uploadForm" enctype="multipart/form-data" style="display: contents;">
+					<input type="file" id="fileUpload" name="file" accept=".edf,.EDF" required style="display:none;" onchange="handleFileUpload(event)">
+					<button type="button" id="submitFile" onclick="document.getElementById('fileUpload').click()">Upload EDF</button>
+				</form>
+				<a href="{{ url_for('viewer.use_example') }}" style="text-decoration:none;">
+					<button type="button">Use Example EDF</button>
+				</a>
+
+				<!-- Separator -->
+				<span style="display:inline-block; width:16px;"></span>
+
+				<!-- Annotation buttons (shown when EDF is loaded) -->
+				<input type="file" id="annotationUpload" accept=".txt,.TXT,.csv,.CSV,.tsv,.TSV,.xlsx,.XLSX,.xls,.XLS" style="display:none;" onchange="handleAnnotationUpload(event)">
+				<button type="button" id="uploadAnnotationBtn" onclick="document.getElementById('annotationUpload').click()" style="display:none;">Upload Annotation</button>
+				<button type="button" id="exampleAnnotationBtn" style="display:none;" onclick="useExampleAnnotation()">Use Example Annotation</button>
+			</div>
+
+			<!-- Row 2: file info + action buttons (shown when EDF is loaded) -->
+			<div id="fileInfoRow" style="display:none; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;">
+				<button id="downloadPhenotypes" class="delete-button" onclick="downloadPhenotypes()" style="background: var(--success-green); color: var(--white);" title="Results will be sent to your account email. You can close the window before result is complete. Uploaded EDF will be deleted.">Compute Phenomics</button>
+				<button id="downloadDetections" class="delete-button" onclick="downloadDetections()" style="background: var(--success-green); color: var(--white); display:none;" disabled>Download Event Detections</button>
+				<button id="deleteFile" class="delete-button" onclick="openDeleteModal()" style="background: var(--danger-red); color: var(--white);">Delete File</button>
+				<span id="currentFileLabel" style="font-weight:500; color: var(--dark-gray);"></span>
+				<span id="fileDeletedMsg" style="display:none; font-size:13px; color:#888;">File has been deleted after analysis.</span>
+			</div>
+		</div>
+
+		<!-- Phenomics feature selection panel -->
+		<div id="phenomicsOptions" style="display:none; margin: 10px 0;">
+			<div class="visualization-tile" style="padding: 14px 18px;">
+				<h4 style="margin: 0 0 12px 0; color: var(--dark-gray); font-weight: 600;">Phenomics Selection <span style="font-weight: 400; font-size: 15px; color: #222;">(Results will be sent to your account email. You can close the window before result is complete.)</span></h4>
+				<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+
+					<!-- Sleep Staging -->
+					<div style="min-width: 200px;">
+						<div style="font-weight: 600; color: var(--dark-gray); margin-bottom: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">Sleep Staging</div>
+						<label id="fromAnnotationLabel" title="Enables when annotation file is uploaded." style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; color: #aaa; cursor: default;">
+							<input type="radio" id="fromAnnotationRadio" name="sleep_staging" class="pheno-check" value="from_annotation" disabled onchange="updateUsleepInputs()" style="accent-color: var(--primary-blue);">
+							From Annotation ({{ running_times['from_annotation'] }})
+						</label>
+						<label id="caisrLabel" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="radio" id="caisrRadio" name="sleep_staging" class="pheno-check" value="sleep_staging_CAISR" checked onchange="updateUsleepInputs()" style="accent-color: var(--primary-blue);">
+							CAISR (includes hypnodensity, {{ running_times['sleep_staging_CAISR'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/sleep_staging_CAISR','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<label id="usleepLabel" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="radio" id="usleepRadio" name="sleep_staging" class="pheno-check" value="usleep" onchange="updateUsleepInputs()" style="accent-color: var(--primary-blue);">
+							U-Sleep (includes hypnodensity, {{ running_times['sleep_staging_USleep'] }})
+							<button class="pheno-help" onclick="window.open('https://sleep.ai.ku.dk/','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<div id="usleepTimeResRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
+							<label style="white-space: nowrap;">Time resolution</label>
+							<input type="number" id="usleepTimeRes" disabled min="1" step="1" value="1"
+								style="width: 52px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;">
+							<span>second</span>
+						</div>
+						<div id="usleepTokenRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
+							<label style="white-space: nowrap;">Token</label>
+							<input type="password" id="usleepToken" disabled value=""
+								style="width: 160px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;"
+								oncopy="return false;" oncut="return false;">
+						</div>
+					</div>
+
+					<!-- EEG -->
+					<div style="min-width: 200px;">
+						<div style="font-weight: 600; color: var(--dark-gray); margin-bottom: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">EEG</div>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" class="pheno-check" value="band_power" checked style="accent-color: var(--primary-blue);">
+							Spectrogram &amp; Band Power ({{ running_times['band_power'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/band_power','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" id="spindleCheck" class="pheno-check" value="spindle_slow_oscillation" onchange="updateSpindleQuality()" style="accent-color: var(--primary-blue);">
+							Spindle &amp; Slow Oscillation (from Luna v1.3, {{ running_times['spindle_slow_oscillation'] }})
+							<button class="pheno-help" onclick="window.open('https://zzz.nyspi.org/luna/ref/spindles-so/','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<div id="spindleQualityRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
+							<label for="spindleQuality" style="white-space: nowrap;">Quality cutoff</label>
+							<input type="number" id="spindleQuality" disabled min="0" step="0.1" value="0.5"
+								style="width: 52px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;">
+						</div>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" class="pheno-check" value="brain_age" style="accent-color: var(--primary-blue);">
+							Brain Age ({{ running_times['brain_age'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/brain_age','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<div style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px;">
+							<label for="actualAge" style="white-space: nowrap; color: #666;">Actual age (year):</label>
+							<input type="number" id="actualAge" min="0" max="120" step="1" value="50"
+								style="width: 72px; padding: 2px 5px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 13px;">
+						</div>
+					</div>
+
+					<!-- Respiration & SpO2 -->
+					<div style="min-width: 180px;">
+						<div style="font-weight: 600; color: var(--dark-gray); margin-bottom: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">Respiration &amp; SpO2</div>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" class="pheno-check" value="hypoxic_burden" style="accent-color: var(--primary-blue);">
+							Hypoxic Burden ({{ running_times['hypoxic_burden'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/hypoxic_burden','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" class="pheno-check" value="self_similarity" style="accent-color: var(--primary-blue);">
+							Self-Similarity ({{ running_times['self_similarity'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/self_similarity','_blank')" title="Learn more" type="button">?</button>
+						</label>
+					</div>
+
+					<!-- ECG -->
+					<div style="min-width: 160px;">
+						<div style="font-weight: 600; color: var(--dark-gray); margin-bottom: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">ECG</div>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" class="pheno-check" value="hrv" style="accent-color: var(--primary-blue);">
+							Heart Rate Variability (HRV, {{ running_times['hrv'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/hrv','_blank')" title="Learn more" type="button">?</button>
+						</label>
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+							<input type="checkbox" class="pheno-check" value="cardiopulmonary_coupling" style="accent-color: var(--primary-blue);">
+							Cardiopulmonary Coupling (CPC, {{ running_times['cardiopulmonary_coupling'] }})
+							<button class="pheno-help" onclick="window.open('/viewer/docs/cardiopulmonary_coupling','_blank')" title="Learn more" type="button">?</button>
+						</label>
+					</div>
+
+				</div>
+
+				<!-- Custom Phenotype -->
+				<div style="margin-top: 14px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
+					<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--dark-gray); text-transform: uppercase; letter-spacing: 0.05em;">
+						<input type="checkbox" id="customPhenotypeCheck" class="pheno-check" value="custom_phenotype"
+							onchange="updateCustomPhenotype()" style="accent-color: var(--primary-blue);">
+						Custom Phenotype
+						<button class="pheno-help" onclick="window.open('/viewer/docs/custom_phenotype','_blank')" title="Learn more" type="button">?</button>
+					</label>
+					<div id="customCodeRow" style="display: none; margin-left: 22px;">
+						<div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+							Phenotype code &mdash; edit &amp; debug elsewhere, copy here. If you want to make it into the SPA website, contact SPA.
+						</div>
+						<textarea id="customCode" rows="10"
+							style="width:100%; font-family:monospace; font-size:12px; border:1px solid #ccc;
+							       border-radius:4px; padding:8px; box-sizing:border-box; resize:vertical; tab-size:4;"></textarea>
+
+						<label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; margin-top: 10px; margin-bottom: 4px;">
+							<input type="checkbox" id="customFigureCheck" onchange="updateCustomFigure()" style="accent-color: var(--primary-blue);">
+							Figure code (optional) &mdash; edit &amp; debug elsewhere, copy here.
+						</label>
+						<div id="customFigureRow" style="display: none;">
+							<textarea id="customFigureCode" rows="8"
+								style="width:100%; font-family:monospace; font-size:12px; border:1px solid #ccc;
+								       border-radius:4px; padding:8px; box-sizing:border-box; resize:vertical; tab-size:4;"></textarea>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Phenomics progress log -->
+		<div id="phenomicsLog" style="display:none; margin: 10px 0;">
+			<h4 style="margin: 0 0 6px 0; color: var(--dark-gray); font-weight: 600;">Sleep Phenomics Progress</h4>
+			<textarea id="phenomicsLogText" readonly
+				style="width:100%; height:160px; resize:none; font-family:monospace; font-size:13px;
+				       background:#ffffff; color:#000000; border:1px solid var(--border-gray);
+				       border-radius:6px; padding:8px; box-sizing:border-box; overflow-y:scroll;">
+			</textarea>
+		</div>
+
+		<!-- Display Options Tile -->
+		<div class='visualization-tile'>
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600;">Display Options</h3>
+			<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+
+				<!-- Scale controls with per-channel selection -->
+				<div style="display: flex; align-items: center; gap: 8px;">
+					<span style="font-weight: 500; color: var(--dark-gray);">Scale:</span>
+					<select id="scaleChannelSelect">
+						<option value="all">All channels</option>
+						<option value="F3-M2">F3-M2</option>
+						<option value="F4-M1">F4-M1</option>
+						<option value="C3-M2">C3-M2</option>
+						<option value="C4-M1">C4-M1</option>
+						<option value="O1-M2">O1-M2</option>
+						<option value="O2-M1">O2-M1</option>
+						<option value="E1-M2">E1-M2</option>
+						<option value="E2-M1">E2-M1</option>
+						<option value="CHIN1-CHIN2">CHIN1-CHIN2</option>
+						<option value="LAT">LAT</option>
+						<option value="RAT">RAT</option>
+						<option value="SNORE">SNORE</option>
+						<option value="PTAF">PTAF</option>
+						<option value="AIRFLOW">AIRFLOW</option>
+						<option value="CHEST">CHEST</option>
+						<option value="ABD">ABD</option>
+						<option value="ECG">ECG</option>
+						<option value="SpO2">SpO2</option>
+					</select>
+					<input type="image" style="height:24px;width:24px; cursor: pointer;" src="/static/images/scale_up.png" onclick="increase_gain();" title="Increase Gain" />
+					<input type="image" style="height:24px;width:24px; cursor: pointer;" src="/static/images/scale_down.png" onclick="decrease_gain();" title="Decrease Gain" />
+					<button onclick="autoScaleSignals()" class="page-size-btn inactive" style="padding: 6px 14px;" title="Scale each channel to equal vertical height">Auto-Scale Signals</button>
+				</div>
+
+				<!-- Navigation controls -->
+				<div style="display: flex; gap: 8px; align-items: center;">
+					<span style="font-weight: 500; color: var(--dark-gray);">Navigate:</span>
+					<input type="image" style="height:20px;width:20px; cursor: pointer;" src="/static/images/play_first.png" onclick="go_to_start()" title="Move to Start" />
+					<input type="image" style="height:20px;width:20px; cursor: pointer;" src="/static/images/play_back.png" onclick="go_left()" title="Previous" />
+					<input type="image" style="height:20px;width:20px; cursor: pointer;" src="/static/images/play_fwd.png" onclick="go_right()" title="Next" />
+					<input type="image" style="height:20px;width:20px; cursor: pointer;" src="/static/images/play_last.png" onclick="go_to_end()" title="Move to End" />
+				</div>
+
+				<!-- Notch filter -->
+				<div style="display: flex; align-items: center; gap: 8px;">
+					<label for="notch_f">Notch:</label>
+					<select id="notch_f" name="notch_f" onchange="display_segment(buffer[readPointer])">
+						<option value="off">Off</option>
+						<option value="50">50 Hz</option>
+						<option value="60" selected>60 Hz</option>
+					</select>
+				</div>
+			</div>
+
+			<!-- Page Size Controls -->
+			<div class="page-size-buttons">
+				<label>Page Size:</label>
+				<button class="page-size-btn inactive" onclick="setPageSize(10, this)">10s</button>
+				<button class="page-size-btn active" onclick="setPageSize(30, this)">30s</button>
+				<button class="page-size-btn inactive" onclick="setPageSize(60, this)">1m</button>
+				<button class="page-size-btn inactive" onclick="setPageSize(300, this)">5m</button>
+				<button class="page-size-btn inactive" onclick="setPageSize(600, this)">10m</button>
+			</div>
+		</div>
+		
+		<div id='loading_Indicator' style="display:none;">Loading recording, please wait...</div>
+
+
+		<!-- Hypnogram & Spectrogram Panel -->
+		<div class="visualization-tile" id="hypno_container" style="display: none;">
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Hypnogram &amp; Spectrogram</h3>
+			<div id="hypnoSpectrogramPlot"></div>
+		</div>
+
+		<!-- CPC Mountain Plot Panel -->
+		<div class="visualization-tile" id="cpc_container" style="display: none;">
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Cardiopulmonary Coupling (CPC)</h3>
+			<div id="cpcMountainPlot"></div>
+		</div>
+
+		<!-- Custom Figure Panel -->
+		<div class="visualization-tile" id="custom_figure_container" style="display: none;">
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Custom Phenotype Figure</h3>
+			<div id="customFigurePlot"></div>
+		</div>
+
+		<!-- Visualization Container -->
+		<div id="eeg_container">
+			<div class="visualization-container">
+				<!-- PSG Plot Tile -->
+				<div class="visualization-tile psg-tile">
+					<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">PSG Signals</h3>
+					<div id="loadingMessage" style="display:none; text-align: center; padding: 20px; color: var(--accent-slate);">Loading, please wait...</div>
+					<div id="myChart_eeg"></div>
+				</div>
+			</div>
+			
+			<!-- Report Section Tile -->
+			<div class="visualization-tile" id="report_container" style="display: none; max-width: 1000px; margin: 15px auto;">
+				<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Analysis Report</h3>
+				<div id="report_cell"></div>
+			</div>
+		</div>
+		
+		</div> <!-- Close main-content -->
+	<!-- Queue notification overlay -->
+	<div id="queueNotificationOverlay">
+		<div id="queueNotificationContainer">
+			<div id="queueNotificationText"></div>
+			<button id="queueNotificationOK" onclick="document.getElementById('queueNotificationOverlay').classList.remove('active')">OK</button>
+		</div>
+	</div>
+	<!-- Contact overlay -->
+	<div id="contactOverlay" onclick="if(event.target===this)this.classList.remove('active')">
+		<div id="contactBox">
+			<h3>Contact</h3>
+			<p>Haoqi Sun, PhD</p>
+			<p>Beth Israel Deaconess Medical Center</p>
+			<p>hsun3@bidmc.harvard.edu</p>
+			<button id="contactClose" onclick="document.getElementById('contactOverlay').classList.remove('active')">Close</button>
+		</div>
+	</div>
+	<!-- Upload progress overlay (fixed, above all content) -->
+	<div id="uploadProgressOverlay">
+		<div id="uploadProgressContainer">
+			<div id="uploadProgressLabel">Uploading… 0%</div><!-- text set dynamically -->
+			<div id="uploadProgressBar"><div id="uploadProgressFill"></div></div>
+		</div>
+	</div>
+	<footer style="text-align:center; padding: 16px; font-size: 12px; color: #888;">
+		This software is licensed under CC BY-NC 4.0 for non-commercial use. It is not approved for clinical usage.
+	</footer>
+	</body>
+</html>

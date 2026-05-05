@@ -1,0 +1,10 @@
+matplotlib
+pytorch-lightning
+torch
+torchvision
+torchaudio
+pandas
+scipy
+flask
+numpy
+mne
