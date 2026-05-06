@@ -122,11 +122,13 @@ class PSGFeatureComputation:
                 if self.annot_df is None or len(self.annot_df) == 0:
                     self._log('No annotation stages provided — skipping.')
                     continue
-                f, d = sleep_staging_from_annotation(annot=self.annot_df, signal_len_seconds=self.signal_len_seconds, log=self._log)
+                f, d = sleep_staging_from_annotation(annot=self.annot_df, signal_len_seconds=self.signal_len_seconds,
+                        log=self._log, fs=self.fs,)
 
             elif feat == 'sleep_staging_CAISR':
                 folder = self.prepare_EDF_for_CAISR()
-                f, d = sleep_staging_CAISR(sid=self.sid, signals=self.signals, folder=folder, signal_len_seconds=self.signal_len_seconds, log=self._log)
+                f, d = sleep_staging_CAISR(sid=self.sid, signals=self.signals, folder=folder, signal_len_seconds=self.signal_len_seconds,
+                        log=self._log, fs=self.fs,)
                 #self._log(', '.join([f'{k}: {v}' for k, v in f.items()]))
 
             elif feat == 'custom_phenotype':

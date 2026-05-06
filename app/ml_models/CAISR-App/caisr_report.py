@@ -160,9 +160,9 @@ def combine_caisr_outputs(file_id, path_dir_caisr_output, combined_folder, task_
     # replace any NaN with integer 9:
     df_annotations_combined = df_annotations_combined.fillna(9)
 
-    # every col that starts with 'prob', round to 5 decimals. all other columns round to 0 and convert to int:
+    # every col containing 'prob', round to 5 decimals. all other columns round to 0 and convert to int:
     for col in df_annotations_combined.columns:
-        if col.startswith('prob'):
+        if 'prob' in col:
             df_annotations_combined[col] = df_annotations_combined[col].round(5)
         else:
             df_annotations_combined[col] = df_annotations_combined[col].round(0)

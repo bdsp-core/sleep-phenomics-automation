@@ -251,9 +251,9 @@ def sleep_staging_CAISR(sid=None, signals=None, fs=None, channels=None, sleep_st
         # get CAISR summary numbers
         path_rep = os.path.normpath(os.path.join(folder, 'reports/caisr_sleep_metrics_all_studies.csv'))
         df_rep = pd.read_csv(path_rep)
-        log(df_rep)
-        log(df_rep.study_id)
-        log(df_rep.study_id.dtype)
+        #log(df_rep)
+        #log(df_rep.study_id)
+        #log(df_rep.study_id.dtype)
 
         # bug: when sid is all numerical, study_id is int and sid is str, no match
         #df_rep = df_rep[df_rep.study_id==sid].iloc[0,1:]
@@ -267,11 +267,17 @@ def sleep_staging_CAISR(sid=None, signals=None, fs=None, channels=None, sleep_st
         df_res = pd.read_csv(path_res)
         if 'stage' in df_res.columns:
             detects['sleep_stages_CAISR'] = _caisr_result_to_pandas_events(df_res.copy(), 'stage', {9:'UNK', 5:'W', 4:'R', 3:'N1', 2:'N2', 1:'N3'}, fs_eeg)
-        if 'prob_n3' in df_res.columns:
-            df_ssp = df_res.copy()
-            df_ssp['Onset'] = df_ssp['start_idx']/fs_eeg
-            df_ssp['Duration'] = (df_ssp.start_idx-df_ssp.end_idx)/fs_eeg
-            detects['sleep_stages_prob_CAISR'] = df_ssp[['Onset','Duration', 'prob_w','prob_n1', 'prob_n2', 'prob_n3', 'prob_r']]
+        # Read float probabilities from the raw stage CSV — the report task inside Docker
+        # renames prob_* → stage_prob_* then rounds them to integers (a Docker-side bug),
+        # so the combined caisr_annotations CSV cannot be used for this.
+        path_stage = os.path.normpath(os.path.join(folder, f'intermediate/stage/{sid}_stage.csv'))
+        if os.path.exists(path_stage):
+            df_stage = pd.read_csv(path_stage)
+            if 'prob_n3' in df_stage.columns:
+                df_ssp = df_stage.copy()
+                df_ssp['Onset'] = df_ssp['start_idx'] / fs_eeg
+                df_ssp['Duration'] = (df_ssp['end_idx'] - df_ssp['start_idx']) / fs_eeg
+                detects['sleep_stages_prob_CAISR'] = df_ssp[['Onset', 'Duration', 'prob_w', 'prob_n1', 'prob_n2', 'prob_n3', 'prob_r']]
         if 'arousal' in df_res.columns:
             detects['arousal_CAISR'] = _caisr_result_to_pandas_events(df_res.copy(), 'arousal', {1:'arousal'}, fs_eeg)
         if 'resp' in df_res.columns:
@@ -372,7 +378,7 @@ def band_power(sid=None, signals=None, fs=None, channels=None, sleep_stages=None
 def spindle_slow_oscillation(sid=None, signals=None, channels=None, fs=None, sleep_stages=None, log=print, n_jobs=1, **kwargs):
     """Detect sleep spindles and slow oscillations from EEG.
     """
-    luna_cmd_path = 'luna'
+    luna_cmd_path = '/home/haoqisun/luna-base-1.2.3/luna'
     #macos_arm64_luna-v1.5.1'
     #macos_luna-v1.5.1
     #windows-luna-v1.5.1

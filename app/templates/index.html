@@ -1133,7 +1133,7 @@
                         function showQueueNotification(position, maxJobs) {
                             const overlay = document.getElementById('queueNotificationOverlay');
                             const text = document.getElementById('queueNotificationText');
-                            text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically. You can leave the website at any time and the result will be sent to your email.`;
+                            text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically once others finished their job. `;
                             overlay.classList.add('active');
                         }
 
@@ -1141,7 +1141,7 @@
                             const overlay = document.getElementById('queueNotificationOverlay');
                             const text = document.getElementById('queueNotificationText');
                             if (overlay.classList.contains('active')) {
-                                text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically. You can leave the website at any time and the result will be sent to your email.`;
+                                text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically once others finished their job. `;
                             }
                         }
 
@@ -1428,7 +1428,7 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 
 			<!-- Row 2: file info + action buttons (shown when EDF is loaded) -->
 			<div id="fileInfoRow" style="display:none; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;">
-				<button id="downloadPhenotypes" class="delete-button" onclick="downloadPhenotypes()" style="background: var(--success-green); color: var(--white);" title="Results will be sent to your account email. You can close the window before result is complete. Uploaded EDF will be deleted.">Compute Phenomics</button>
+				<button id="downloadPhenotypes" class="delete-button" onclick="downloadPhenotypes()" style="background: var(--success-green); color: var(--white);" title="Uploaded EDF will be deleted.">Compute Phenomics</button>
 				<button id="downloadDetections" class="delete-button" onclick="downloadDetections()" style="background: var(--success-green); color: var(--white); display:none;" disabled>Download Event Detections</button>
 				<button id="deleteFile" class="delete-button" onclick="openDeleteModal()" style="background: var(--danger-red); color: var(--white);">Delete File</button>
 				<span id="currentFileLabel" style="font-weight:500; color: var(--dark-gray);"></span>
@@ -1439,7 +1439,7 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 		<!-- Phenomics feature selection panel -->
 		<div id="phenomicsOptions" style="display:none; margin: 10px 0;">
 			<div class="visualization-tile" style="padding: 14px 18px;">
-				<h4 style="margin: 0 0 12px 0; color: var(--dark-gray); font-weight: 600;">Phenomics Selection <span style="font-weight: 400; font-size: 15px; color: #222;">(Results will be sent to your account email. You can close the window before result is complete.)</span></h4>
+				<h4 style="margin: 0 0 12px 0; color: var(--dark-gray); font-weight: 600;">Phenomics Selection</h4>
 				<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
 
 					<!-- Sleep Staging -->
@@ -1454,22 +1454,24 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 							CAISR (includes hypnodensity, {{ running_times['sleep_staging_CAISR'] }})
 							<button class="pheno-help" onclick="window.open('/viewer/docs/sleep_staging_CAISR','_blank')" title="Learn more" type="button">?</button>
 						</label>
-						<label id="usleepLabel" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
-							<input type="radio" id="usleepRadio" name="sleep_staging" class="pheno-check" value="usleep" onchange="updateUsleepInputs()" style="accent-color: var(--primary-blue);">
-							U-Sleep (includes hypnodensity, {{ running_times['sleep_staging_USleep'] }})
-							<button class="pheno-help" onclick="window.open('https://sleep.ai.ku.dk/','_blank')" title="Learn more" type="button">?</button>
-						</label>
-						<div id="usleepTimeResRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
-							<label style="white-space: nowrap;">Time resolution</label>
-							<input type="number" id="usleepTimeRes" disabled min="1" step="1" value="1"
-								style="width: 52px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;">
-							<span>second</span>
-						</div>
-						<div id="usleepTokenRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
-							<label style="white-space: nowrap;">Token</label>
-							<input type="password" id="usleepToken" disabled value=""
-								style="width: 160px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;"
-								oncopy="return false;" oncut="return false;">
+						<div style="display: none;">
+							<label id="usleepLabel" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px;">
+								<input type="radio" id="usleepRadio" name="sleep_staging" class="pheno-check" value="usleep" onchange="updateUsleepInputs()" style="accent-color: var(--primary-blue);">
+								U-Sleep (includes hypnodensity, {{ running_times['sleep_staging_USleep'] }})
+								<button class="pheno-help" onclick="window.open('https://sleep.ai.ku.dk/','_blank')" title="Learn more" type="button">?</button>
+							</label>
+							<div id="usleepTimeResRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
+								<label style="white-space: nowrap;">Time resolution</label>
+								<input type="number" id="usleepTimeRes" disabled min="1" step="1" value="1"
+									style="width: 52px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;">
+								<span>second</span>
+							</div>
+							<div id="usleepTokenRow" style="display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 4px; margin-left: 22px; color: #aaa;">
+								<label style="white-space: nowrap;">Token</label>
+								<input type="password" id="usleepToken" disabled value=""
+									style="width: 160px; padding: 2px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #aaa; background: #f5f5f5;"
+									oncopy="return false;" oncut="return false;">
+							</div>
 						</div>
 					</div>
 
@@ -1575,6 +1577,24 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 			</textarea>
 		</div>
 
+		<!-- Hypnogram & Spectrogram Panel -->
+		<div class="visualization-tile" id="hypno_container" style="display: none;">
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Hypnogram &amp; Spectrogram</h3>
+			<div id="hypnoSpectrogramPlot"></div>
+		</div>
+
+		<!-- CPC Mountain Plot Panel -->
+		<div class="visualization-tile" id="cpc_container" style="display: none;">
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Cardiopulmonary Coupling (CPC)</h3>
+			<div id="cpcMountainPlot"></div>
+		</div>
+
+		<!-- Custom Figure Panel -->
+		<div class="visualization-tile" id="custom_figure_container" style="display: none;">
+			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Custom Phenotype Figure</h3>
+			<div id="customFigurePlot"></div>
+		</div>
+
 		<!-- Display Options Tile -->
 		<div class='visualization-tile'>
 			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600;">Display Options</h3>
@@ -1639,27 +1659,8 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 				<button class="page-size-btn inactive" onclick="setPageSize(600, this)">10m</button>
 			</div>
 		</div>
-		
+
 		<div id='loading_Indicator' style="display:none;">Loading recording, please wait...</div>
-
-
-		<!-- Hypnogram & Spectrogram Panel -->
-		<div class="visualization-tile" id="hypno_container" style="display: none;">
-			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Hypnogram &amp; Spectrogram</h3>
-			<div id="hypnoSpectrogramPlot"></div>
-		</div>
-
-		<!-- CPC Mountain Plot Panel -->
-		<div class="visualization-tile" id="cpc_container" style="display: none;">
-			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Cardiopulmonary Coupling (CPC)</h3>
-			<div id="cpcMountainPlot"></div>
-		</div>
-
-		<!-- Custom Figure Panel -->
-		<div class="visualization-tile" id="custom_figure_container" style="display: none;">
-			<h3 style="margin-top: 0; color: var(--dark-gray); font-weight: 600; margin-bottom: 15px;">Custom Phenotype Figure</h3>
-			<div id="customFigurePlot"></div>
-		</div>
 
 		<!-- Visualization Container -->
 		<div id="eeg_container">

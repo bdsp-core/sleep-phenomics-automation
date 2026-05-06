@@ -1088,7 +1088,7 @@ def phenotypes_progress(job_id):
             try:
                 msg_type, msg = log_queue.get(timeout=60)
                 if msg_type == 'log':
-                    lines = msg.strip().splitlines()
+                    lines = str(msg).strip().splitlines()
                     yield "".join(f"data: {line}\n" for line in lines) + "\n"
                 elif msg_type == 'queued':
                     yield f"event: queued\ndata: {msg}\n\n"
