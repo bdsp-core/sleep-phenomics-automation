@@ -1,12 +1,15 @@
 # Custom Phenotype
 
+## First Note
+For users who wants to add new phenotypes, we assume you have coding ability. It is highly recommended to download/clone from [GitHub](https://github.com/bdsp-core/sleep-phenomics-automation), go to the `if __name__=='__main__':` part of app/viewer/feature_extract.py, develop and debug your code there, and paste the working code onto the webpage textbox. After it can run, please contact us to add this function to the SPA webpage so that everyone can use it. Thank you.
+
 ## Overview
 The Custom Phenotype feature lets you inject arbitrary Python functions into the phenomics pipeline at runtime. Two functions can be provided:
 
 - **Code** (required when enabled) — computes features and detections from PSG signals, exactly like any built-in phenotype.
-- **Figure** (optional) — receives the outputs of Code and returns a Plotly figure, which is displayed as an interactive panel below the CPC mountain plot.
+- **Figure** (optional) — receives the outputs of Code and returns a Plotly figure to be displayed.
 
-Both functions are written in **Python** and executed server-side. The Figure function uses **Plotly** (`plotly.graph_objects` or `plotly.express`) so that the resulting figure can be serialised to JSON and rendered in the browser with the same Plotly.js library used for the hypnogram, spectrogram, and CPC plots.
+Both functions are written in **Python** and executed on the server side. The Figure function uses **Plotly** (`plotly.graph_objects` or `plotly.express`) so that the resulting figure can be serialised to JSON and rendered in the browser with the same Plotly.js library used for the hypnogram, spectrogram, and CPC plots.
 
 ---
 
@@ -15,37 +18,36 @@ Both functions are written in **Python** and executed server-side. The Figure fu
 ### Signature
 
 ```python
-def my_phenotype(
-    sid=None,          # str  — recording identifier (EDF filename stem)
-    signals=None,      # dict — preprocessed signal arrays
-    fs=None,           # dict — sampling rates (Hz)
-    channels=None,     # dict — channel name lists
-    sleep_stages=None, # np.ndarray — epoch-level sleep stages (30 s epochs)
-    log=print,         # callable — write a line to the progress log
-    n_jobs=1,          # int — parallel workers (usually 1)
-    **kwargs           # notch_freq, and other pipeline kwargs
+def my_phenotype( sid=None,
+    signals=None, fs=None, 
+    channels=None,
+    sleep_stages=None, 
+    log=print, n_jobs=1, **kwargs
 ):
     feats   = {}   # {feature_name: scalar_value, ...}
-    detects = {}   # non-scalar results (DataFrames, arrays, ...)
+    detects = {}   # {feature_name: non-scalar results (DataFrames, arrays, ...}
     return feats, detects
 ```
 
 ### Input Arguments
 
+#### `sid`
+`str` recording identifier
+
 #### `signals`
 `dict` mapping signal group → 2-D `numpy.ndarray` of shape `(n_channels, n_samples)`.
 
-| Key | Signal | Preprocessing |
-|-----|--------|---------------|
-| `'eeg'` | EEG channels | Bandpass 0.3–35 Hz, notch filtered |
-| `'ecg'` | ECG | Bandpass 0.3–100 Hz, notch filtered |
-| `'eog'` | EOG channels | Bandpass 0.3–35 Hz, notch filtered |
-| `'chin_emg'` | Chin EMG | Bandpass 10–100 Hz, notch filtered |
-| `'limb_emg'` | Leg EMG (LAT, RAT) | Bandpass 10–100 Hz, notch filtered |
-| `'rip'` | Respiratory effort belts | Bandpass 0.1–15 Hz |
-| `'nasalpressure'` | Nasal pressure | Bandpass 0.03–100 Hz |
-| `'airflow'` | Thermistor airflow | Bandpass 0.1–15 Hz |
-| `'spo2'` | Pulse oximetry (%) | Scaled to % range |
+| Key | Signal |
+|-----|--------|
+| `'eeg'` | EEG |
+| `'ecg'` | ECG |
+| `'eog'` | EOG |
+| `'chin_emg'` | Chin EMG |
+| `'limb_emg'` | Leg EMG (LAT, RAT) |
+| `'rip'` | Respiratory effort belts |
+| `'nasalpressure'` | Nasal pressure |
+| `'airflow'` | Thermistor airflow |
+| `'spo2'` | Pulse oximetry (%) |
 
 Only keys present in the recording are included. Always guard with `signals.get('eeg')`.
 
@@ -70,23 +72,20 @@ Same keys as `signals`. Each value is a list of channel name strings in the same
 #### `log`
 Call `log("message")` to write a line to the phenomics progress panel on the webpage.
 
-#### `kwargs`
-Contains at minimum `notch_freq` (power-line frequency, `float` or `None`).
-
 ### Return Values
 
 #### `feats`
-`dict` of `{str: scalar}`. Keys become column names in the downloaded CSV. Values must be JSON-serialisable (`float`, `int`, `str`, `None`, `float('nan')`).
+`dict` of `{str: scalar}`. Keys become row names in the downloaded CSV.
 
 #### `detects`
-`dict` of non-scalar results (e.g. `pandas.DataFrame` event tables, `numpy.ndarray` time series). Stored in the detections pickle (`.pkl`) download. Use `{}` if not needed.
+`dict` of `{str: non-scalar results}`, such as `pandas.DataFrame` event tables and `numpy.ndarray` time series. Stored in the detections pickle (`.pkl`) download. Use `{}` if not needed.
 
 ---
 
 ## Figure Function
 
 ### Language
-**Python**, using **Plotly** (`plotly.graph_objects` or `plotly.express`). The function must return a `plotly.graph_objects.Figure`. The figure is serialised to JSON by the server and rendered interactively in the browser with Plotly.js — giving zoom, pan, and hover for free.
+**Python**, using **Plotly** (`plotly.graph_objects` or `plotly.express`). The function must return a `plotly.graph_objects.Figure`. The figure is serialised to JSON by the server and rendered in the browser with Plotly.js.
 
 ### Signature
 
@@ -100,15 +99,8 @@ def my_figure(feats, detects):
     return fig   # must be a plotly.graph_objects.Figure
 ```
 
-### Input Arguments
-
-| Argument | Type | Description |
-|----------|------|-------------|
-| `feats` | `dict` | Scalar features returned by the Code function |
-| `detects` | `dict` | Non-scalar detections returned by the Code function |
-
 ### Return Value
-A `plotly.graph_objects.Figure`. The figure is displayed as a separate interactive panel below the CPC mountain plot. If the function raises an exception or returns `None`, the panel is not shown.
+A `plotly.graph_objects.Figure`. The figure is displayed as a separate panel above the Display Options panel. If the function raises an exception or returns `None`, the panel is not shown.
 
 ---
 
@@ -180,6 +172,7 @@ def my_figure(feats, detects):
 
 ## Notes
 - The first **public** (non-underscore) function *defined in the code block* is used as the entry point. Imported functions (e.g. `from scipy.signal import welch`) are ignored. Prefix auxiliary functions with `_` so they are not mistaken for the main function.
-- Standard library and installed packages (`numpy`, `scipy`, `neurokit2`, `pandas`, `plotly`, etc.) can be imported inside the function.
+- Packages can be installed via `subprocess.run('python -m pip install <package>', shell=True)`.
+- Standard library and installed packages can be imported inside the function.
 - Exceptions in either function are caught and logged; the rest of the pipeline continues unaffected.
 - `feats` keys from the Code function appear in the downloaded phenotypes CSV alongside all built-in feature columns.

@@ -1,27 +1,33 @@
 # EEG Brain Age
 
 ## Overview
-Brain age estimation uses machine learning to predict a subject's neurological age from sleep EEG features. The gap between predicted brain age and chronological age — the **brain age gap (BAG)** — is an index of brain health and resilience.
+The human electroencephalogram (EEG) of sleep undergoes profound changes with age. These changes can be conceptualized as "brain age (BA)," which can be compared to chronological age to reflect the degree of deviation from normal aging. 
+
+## Output Phenotypes
+
+### Pictures on the website
+none
+
+### Phentoype values in CSV to be downloaded
+- brain_age: brain age (BA), in years
+- brain_age_index: BAI, BA - chronological age, in years
 
 ## Clinical Implication
-A positive BAG (brain appears older than chronological age) is associated with cognitive decline, Alzheimer's disease risk, poor sleep quality, metabolic syndrome, and chronic stress. A negative BAG (younger-appearing brain) is generally associated with better brain health. BAG has been proposed as a surrogate endpoint in clinical trials targeting brain aging and as a longitudinal biomarker for monitoring intervention effects.
+A positive brain age index (BAI, brain age minus chronological age, brain appears older than chronological age) is associated with Alzheimer's disease and related dementias. While a negative BAI is generally associated with better brain health. At an individual level, a rule-of-thumb is that BAI >+5 years should be considered old; and BAI <-5 years should be considered young.
 
 ## Strengths
 - Provides a single continuous summary of overall sleep EEG health
 - Captures multivariate EEG features that are not captured by any single spectral measure
-- Trained on normative data spanning a wide age range, enabling cross-sectional comparison to peers
-- Non-invasive and derived from standard PSG without additional hardware
+- Validated in population-scale studies
 
 ## Limitations
-- Accuracy depends on signal quality and consistent electrode placement
-- The model was trained on adult data; accuracy is reduced for ages outside the training range (<18 or >85 years)
-- BAG is a statistical construct — individual predictions have uncertainty bounds (~5 years typical RMSE)
-- Does not account for all sources of EEG variability (e.g., skull thickness, medications, hair/scalp impedance)
+- The model was trained on adults 18-80 years old. Accuracy is reduced for ages outside this range
+- Better to have repeated measures of BA and take average to cancel the noise
 - Results are not validated for clinical diagnosis; intended for research use only
 
 ## Calculation Method
-EEG spectral features (band power per channel and stage, spindle metrics, spectral edge frequency) are extracted from artifact-free NREM epochs. A regularized regression model (trained on normative PSG data from adults aged 18–85) maps these features to predicted age. The brain age gap is computed as `BAG = predicted_age − actual_age`. Actual age must be provided by the user for BAG computation; the model prediction itself does not require age as input.
+A linear regression model based on band powers, spindles, and slow oscillations is trained on adults between 18-80 years old without major neurological or psychiatric diseases.
 
 ## Reference
-- Gómez C et al. "Age-related changes in EEG power spectral density during sleep." *Sleep Medicine*, 2019.
-- Vézard L et al. "Sleep-based brain age estimation: from adult to aging brain." *Journal of Sleep Research*, 2022.
+- Sun, H., Paixao, L., Oliva, J. T., Goparaju, B., Carvalho, D. Z., van Leeuwen, K. G., ... & Westover, M. B. (2019). Brain age from the electroencephalogram of sleep. Neurobiology of aging, 74, 112-120.
+- Sun, H., Milton, S., Fang, Y., Taha, H. B., Shiju, S., Thomas, R. J., ... & Leng, Y. (2026). Machine learning–based sleep electroencephalographic brain age index and dementia risk: an individual participant data meta-analysis. JAMA Network Open, 9(3), e261521.
