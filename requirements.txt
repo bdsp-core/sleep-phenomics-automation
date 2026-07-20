@@ -72,6 +72,7 @@ WTForms==3.2.1
 yarl==1.18.3
 docker==5.0.3
 pyedflib==0.1.42
+pyxdf>=1.17.0,<2
 gunicorn==25.1.0
 playwright>=1.40.0
 usleep-api==0.1.3

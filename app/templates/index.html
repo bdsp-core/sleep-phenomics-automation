@@ -742,9 +742,10 @@
                 document.getElementById('duplicateFileModal').style.display = "none";
             }
             
-            function submitFileUpload(action) {
+            function submitFileUpload(action, streamId) {
                 const formData = new FormData(document.getElementById('uploadForm'));
                 formData.append('action', action);
+                if (streamId !== undefined && streamId !== null) formData.append('stream_id', streamId);
 
                 // Close modal if open
                 closeDuplicateModal();
@@ -768,12 +769,27 @@
                     }
                 });
 
+                xhr.upload.addEventListener('load', function() {
+                    progressFill.style.width = '100%';
+                    progressLabel.textContent = 'Parsing and validating ' + fileName + '…';
+                });
+
                 xhr.addEventListener('load', function() {
                     progressOverlay.classList.remove('active');
-                    if (xhr.responseURL && xhr.responseURL !== window.location.href) {
-                        window.location.href = xhr.responseURL;
+                    if (xhr.status === 409) {
+                        let data;
+                        try { data = JSON.parse(xhr.responseText); } catch (_) {}
+                        if (data && data.status === 'selection_required') {
+                            showXdfStreamSelection(data.streams, action);
+                        } else {
+                            alert('The upload needs additional information. Please try again.');
+                        }
                     } else if (xhr.status >= 400) {
-                        alert("Error uploading file: " + xhr.responseText);
+                        let message = xhr.responseText;
+                        try { message = JSON.parse(xhr.responseText).message || message; } catch (_) {}
+                        alert('Error uploading file: ' + message);
+                    } else if (xhr.responseURL && xhr.responseURL !== window.location.href) {
+                        window.location.href = xhr.responseURL;
                     } else {
                         window.location.href = xhr.responseURL || window.location.href;
                     }
@@ -786,6 +802,28 @@
 
                 xhr.open('POST', '/viewer/upload');
                 xhr.send(formData);
+            }
+
+            function showXdfStreamSelection(streams, action) {
+                const select = document.getElementById('xdfStreamSelect');
+                select.innerHTML = '';
+                streams.filter(s => s.is_signal).forEach(stream => {
+                    const option = document.createElement('option');
+                    option.value = stream.id;
+                    const rate = stream.nominal_sampling_rate ? stream.nominal_sampling_rate + ' Hz' : 'irregular rate';
+                    option.textContent = stream.name + ' (' + (stream.type || 'signal') + ', ' +
+                        stream.channel_count + ' channels, ' + stream.sample_count + ' samples, ' + rate + ')';
+                    select.appendChild(option);
+                });
+                document.getElementById('xdfStreamAction').value = action;
+                document.getElementById('xdfStreamModal').style.display = 'block';
+            }
+
+            function confirmXdfStream() {
+                const streamId = document.getElementById('xdfStreamSelect').value;
+                const action = document.getElementById('xdfStreamAction').value || 'new';
+                document.getElementById('xdfStreamModal').style.display = 'none';
+                submitFileUpload(action, streamId);
             }
             
             const TURBO = [
@@ -1397,6 +1435,20 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 				</div>
 			</div>
 		</div>
+
+		<!-- XDF stream selection (shown only for ambiguous multi-stream files) -->
+		<div id="xdfStreamModal" class="modal">
+			<div class="modal-content">
+				<h3>Select a signal stream</h3>
+				<p>This XDF contains multiple usable time-series streams. Choose the stream to analyze.</p>
+				<select id="xdfStreamSelect" style="width:100%; padding:8px; margin:10px 0;"></select>
+				<input type="hidden" id="xdfStreamAction" value="new">
+				<div class="modal-buttons">
+					<button class="cancel-delete" onclick="document.getElementById('xdfStreamModal').style.display='none'">Cancel</button>
+					<button class="confirm-upload" onclick="confirmXdfStream()">Continue</button>
+				</div>
+			</div>
+		</div>
 		
 		<!-- File Management Tile -->
 		<div class='visualization-tile'>
@@ -1408,10 +1460,10 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 			<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
 				<input type="hidden" id="currentFile" value="{{ selected }}">
 
-				<!-- EDF buttons -->
+				<!-- PSG upload buttons -->
 				<form id="uploadForm" enctype="multipart/form-data" style="display: contents;">
-					<input type="file" id="fileUpload" name="file" accept=".edf,.EDF" required style="display:none;" onchange="handleFileUpload(event)">
-					<button type="button" id="submitFile" onclick="document.getElementById('fileUpload').click()">Upload EDF</button>
+					<input type="file" id="fileUpload" name="file" accept=".edf,.EDF,.bdf,.BDF,.xdf,.XDF" required style="display:none;" onchange="handleFileUpload(event)">
+					<button type="button" id="submitFile" onclick="document.getElementById('fileUpload').click()">Upload PSG (EDF/XDF)</button>
 				</form>
 				<a href="{{ url_for('viewer.use_example') }}" style="text-decoration:none;">
 					<button type="button">Use Example EDF</button>

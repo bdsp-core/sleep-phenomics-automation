@@ -6,6 +6,7 @@ from flask import current_app
 from ..models.user import User, PSGFile, DerivedFile, PSGFileType
 from .. import db
 from werkzeug.datastructures import FileStorage
+from .xdf_parser import convert_xdf_to_edf
 
 MONTAGE_CHANNELS = [
     'F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1',
@@ -21,16 +22,43 @@ class PSGDataManager:
     def save_uploaded_file(cls, uploaded_file: FileStorage, user: User) -> PSGFile:
         """Saves an uploaded EEG file and creates database entry."""
         storage_path = None
+        conversion = None
         try:
             base, ext = os.path.splitext(uploaded_file.filename)
-            if ext.lower() not in ['.edf', '.bdf']:
-                raise ValueError("Unsupported file type")
+            ext = ext.lower()
+            if ext not in ['.edf', '.bdf', '.xdf']:
+                raise ValueError("Unsupported file type. Please upload an EDF, BDF, or XDF file.")
 
-            filename = f"{base}{ext.lower()}"
-            storage_path = os.path.join(current_app.config['DATA_PATH'], str(user.id), filename)
+            filename = f"{base}{ext}"
+            user_path = os.path.join(current_app.config['DATA_PATH'], str(user.id))
+            storage_path = os.path.join(user_path, filename)
 
             os.makedirs(os.path.dirname(storage_path), exist_ok=True)
+            current_app.logger.info(
+                "[upload] Receiving file name=%r type=%s mime=%r declared_size=%r",
+                uploaded_file.filename, ext[1:], uploaded_file.content_type,
+                uploaded_file.content_length,
+            )
             uploaded_file.save(storage_path)
+
+            if ext == '.xdf':
+                xdf_path = storage_path
+                # The rest of SPA intentionally continues to consume EDF. Keeping the
+                # derived name distinct also prevents foo.edf/foo.xdf collisions.
+                storage_path = os.path.join(user_path, f"{base}.from_xdf.edf")
+                current_app.logger.info("[xdf] Initializing parser size=%d", os.path.getsize(xdf_path))
+                try:
+                    selected_stream_id = getattr(uploaded_file, 'selected_stream_id', None)
+                    conversion = convert_xdf_to_edf(xdf_path, storage_path, selected_stream_id)
+                    current_app.logger.info(
+                        "[xdf] Streams discovered=%d selected=%d markers=%d warnings=%d",
+                        len(conversion.streams), conversion.selected_stream_id,
+                        conversion.marker_count, len(conversion.warnings),
+                    )
+                    current_app.logger.info("[xdf] Transformation to internal EDF completed")
+                finally:
+                    if os.path.exists(xdf_path):
+                        os.remove(xdf_path)
 
             raw = mne.io.read_raw_edf(storage_path, preload=False)
             psg_file = PSGFile(
@@ -48,12 +76,16 @@ class PSGDataManager:
 
             db.session.add(psg_file)
             db.session.commit()
+            psg_file.xdf_conversion = conversion
             return psg_file
         except Exception as e:
             db.session.rollback()
-            if storage_path and os.path.exists(storage_path):
+            # XDF conversion writes atomically. On a parse/selection failure the
+            # destination may belong to an earlier upload and must not be removed.
+            if (storage_path and os.path.exists(storage_path)
+                    and (ext != '.xdf' or conversion is not None)):
                 os.remove(storage_path)
-            raise e
+            raise
 
     @classmethod
     def _build_montage(cls, data_array, raw_channels, channel_mappings, only_channels=None):
@@ -146,5 +178,3 @@ class PSGDataManager:
 
         eeg = np.array(montage_data) * 1e6
         return eeg, montage_names, Fs, num_samples, eeg_start
-
-

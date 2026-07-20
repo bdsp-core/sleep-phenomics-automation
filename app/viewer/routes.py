@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 from flask import Response, stream_with_context
 from .feature_extract import PSGFeatureComputation, FEATURE_RUNNING_TIMES
 from .data_processing import MONTAGE_CHANNELS
+from .xdf_parser import XDFError, XDFStreamSelectionRequired
 
 # In-memory store for phenomics computation jobs: job_id -> dict
 _phenotype_jobs = {}
@@ -150,7 +151,11 @@ def upload():
         return "No file provided", 400
 
     action = request.form.get('action', 'new')
-    current_app.logger.debug(f"[upload] Request received: file='{uploaded_file.filename}' action='{action}'")
+    ext = os.path.splitext(uploaded_file.filename or '')[1].lower()
+    current_app.logger.info(
+        "[upload] Request received name=%r detected_type=%s mime=%r action=%s",
+        uploaded_file.filename, ext[1:] or 'unknown', uploaded_file.content_type, action,
+    )
 
     try:
         original_filename = uploaded_file.filename
@@ -165,6 +170,7 @@ def upload():
             current_app.logger.debug(f"[upload] Existing file found — deleting before replace")
             delete_psg_file(existing_file)
             current_app.logger.debug(f"[upload] Saving uploaded file (replace)")
+            uploaded_file.selected_stream_id = request.form.get('stream_id')
             psg_file = PSGDataManager.save_uploaded_file(uploaded_file, current_user)
 
         elif existing_file and action == 'rename':
@@ -181,20 +187,32 @@ def upload():
                 headers=uploaded_file.headers
             )
             current_app.logger.debug(f"[upload] Saving uploaded file (rename)")
+            modified_file.selected_stream_id = request.form.get('stream_id')
             psg_file = PSGDataManager.save_uploaded_file(modified_file, current_user)
 
         else:
             current_app.logger.debug(f"[upload] Saving uploaded file (new)")
+            uploaded_file.selected_stream_id = request.form.get('stream_id')
             psg_file = PSGDataManager.save_uploaded_file(uploaded_file, current_user)
 
         current_app.logger.debug(f"[upload] File saved — redirecting to channel mapping")
         return redirect(url_for('viewer.channel_mapping', filename=psg_file.original_filename))
 
+    except XDFStreamSelectionRequired as e:
+        current_app.logger.info("[xdf] User selection required candidates=%d", len(e.streams))
+        return jsonify({
+            'status': 'selection_required', 'file_type': 'xdf', 'code': e.code,
+            'message': e.public_message, 'streams': e.streams, 'warnings': [],
+        }), 409
+    except XDFError as e:
+        current_app.logger.warning("[xdf] Validation or parsing failed code=%s: %s", e.code, str(e))
+        return jsonify({'status': 'error', 'code': e.code, 'message': e.public_message}), 400
     except ValueError as e:
-        return str(e), 400
+        return jsonify({'status': 'error', 'code': 'INVALID_UPLOAD', 'message': str(e)}), 400
     except Exception as e:
-        current_app.logger.error(f"Error processing upload: {str(e)}")
-        return "Error processing file", 500
+        current_app.logger.exception("Error processing upload")
+        return jsonify({'status': 'error', 'code': 'UPLOAD_FAILED',
+                        'message': 'The file could not be processed. Please verify it and try again.'}), 500
 
 _ANNOTATION_EXTS = {'.txt', '.csv', '.tsv', '.xlsx', '.xls'}
 
@@ -551,7 +569,7 @@ def cancel_channel_mapping(filename):
 @viewer_bp.route('/channel_mapping/<filename>')
 @login_required
 def channel_mapping(filename):
-    """Display channel mapping screen for uploaded EDF file."""
+    """Display channel mapping for an uploaded or normalized PSG file."""
     try:
         current_app.logger.debug(f"[channel_mapping] Request for file='{filename}'")
 
@@ -561,7 +579,7 @@ def channel_mapping(filename):
             user_id=current_user.id
         ).first_or_404()
 
-        current_app.logger.debug(f"[channel_mapping] Reading EDF channel list from disk")
+        current_app.logger.debug(f"[channel_mapping] Reading normalized channel list from disk")
         raw = mne.io.read_raw_edf(psg_file.storage_path, preload=False)
         edf_channels = raw.ch_names
         current_app.logger.debug(f"[channel_mapping] Found {len(edf_channels)} EDF channels")
@@ -1224,4 +1242,3 @@ def phenotypes_download_npz(job_id):
         f'attachment; filename="{job["filename_stem"]}_detections.pkl"'
     )
     return response
-
