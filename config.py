@@ -12,6 +12,12 @@ class Config:
     SESSION_TYPE = 'filesystem'
     SESSION_PERMANENT = False
     DATA_PATH = 'app/data/' # will probably need to change? Or migrate to AWS
+    # PHI-bearing processing artifacts live outside app/static and are purged after
+    # every run. This short fallback window covers abrupt process/host termination.
+    SPA_JOB_CACHE_ROOT = os.environ.get('SPA_JOB_CACHE_ROOT') or os.path.join(basedir, 'instance', 'spa_jobs')
+    SPA_JOB_RETENTION_SECONDS = int(os.environ.get('SPA_JOB_RETENTION_SECONDS', 3600))
+    SPA_JOB_TIMEOUT_SECONDS = int(os.environ.get('SPA_JOB_TIMEOUT_SECONDS', 7200))
+    SPA_RESULT_RETENTION_SECONDS = int(os.environ.get('SPA_RESULT_RETENTION_SECONDS', 3600))
     # Email (SMTP) settings — set these in .env
     MAIL_SERVER   = os.environ.get('MAIL_SERVER')    # e.g. 'smtp.gmail.com'
     MAIL_PORT     = int(os.environ.get('MAIL_PORT', 587))

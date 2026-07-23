@@ -1,4 +1,3 @@
-tests/
 flask_session/
 .env
 *.db

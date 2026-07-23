@@ -415,7 +415,7 @@ def spindle_slow_oscillation(sid=None, signals=None, channels=None, fs=None, sle
     write_edf(luna_edf_path, list(eeg), sig_hdrs, file_type=0)
 
     stages_txt = [_stage_to_txt(s) for s in sleep_stages]
-    fd, annot_path = tempfile.mkstemp(suffix='.eannot')
+    fd, annot_path = tempfile.mkstemp(suffix='.eannot', dir=work_dir or None)
     with os.fdopen(fd, 'w') as fh:
         fh.write('\n'.join(stages_txt))
 
@@ -424,7 +424,7 @@ def spindle_slow_oscillation(sid=None, signals=None, channels=None, fs=None, sle
     sid = str(sid)
     
     # first detect m-spindles, then save as .annot
-    fd, annot_path_msp = tempfile.mkstemp(suffix='.annot')
+    fd, annot_path_msp = tempfile.mkstemp(suffix='.annot', dir=work_dir or None)
     df_msps = []
     for ch in ch_eeg:
         p = proj.inst( sid )
@@ -486,7 +486,7 @@ def spindle_slow_oscillation(sid=None, signals=None, channels=None, fs=None, sle
         # somehow p.var('annot-file', annot_path_msp) doesn't work
         #p.eval(' & '.join([x.split('%')[0] for x in cmd]))
         subprocess.run([luna_cmd_path, luna_edf_path, 'annot-file='+annot_path_msp, '-o', db_path,
-            '-s', ' & '.join([x.split('%')[0] for x in cmd])])
+            '-s', ' & '.join([x.split('%')[0] for x in cmd])], check=True)
         proj.import_db(db_path)
         
         df_sp_event_ = proj.table('SPINDLES', 'CH_F_SPINDLE_mysp')
@@ -591,7 +591,7 @@ _BA_LUNA_SCRIPT_NO_ECG = os.path.join(_BA_MODEL_DIR, 'm1-adult-age-luna-no-ecg.t
 def _ba_run_luna(edf_path, luna_cmd_path, stages_txt, ch_eeg, ch_ecg, age, notch_freq):#, ecg_flip):
     annot_path = None
     try:
-        fd, annot_path = tempfile.mkstemp(suffix='.eannot')
+        fd, annot_path = tempfile.mkstemp(suffix='.eannot', dir=os.path.dirname(edf_path))
         with os.fdopen(fd, 'w') as fh:
             fh.write('\n'.join(stages_txt))
 

@@ -15,6 +15,15 @@ labels become `Channel N`, and unknown units are treated as microvolts with a wa
 XDF metadata not representable in EDF remains visible during stream selection
 but is not persisted after normalization.
 
+## Security and privacy
+
+Uploaded recordings and all job-generated files are deleted after successful and
+failed analysis attempts through a guaranteed worker `finally` cleanup. A configurable
+startup purge removes abandoned job directories left by abrupt process or machine
+termination. Cleanup logs omit filenames, paths, and signal contents. See
+[`SECURITY_PRIVACY.md`](SECURITY_PRIVACY.md) for storage locations, the one-hour
+default retention policy, configuration, and infrastructure limitations.
+
 On Mac
 ```
 # install colima

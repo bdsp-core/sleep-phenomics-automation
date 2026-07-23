@@ -6,6 +6,7 @@ from flask import current_app
 from ..models.user import User, PSGFile, DerivedFile, PSGFileType
 from .. import db
 from werkzeug.datastructures import FileStorage
+from werkzeug.utils import secure_filename
 from .xdf_parser import convert_xdf_to_edf
 
 MONTAGE_CHANNELS = [
@@ -24,7 +25,10 @@ class PSGDataManager:
         storage_path = None
         conversion = None
         try:
-            base, ext = os.path.splitext(uploaded_file.filename)
+            safe_name = secure_filename(uploaded_file.filename or '')
+            if not safe_name:
+                raise ValueError("Invalid filename")
+            base, ext = os.path.splitext(safe_name)
             ext = ext.lower()
             if ext not in ['.edf', '.bdf', '.xdf']:
                 raise ValueError("Unsupported file type. Please upload an EDF, BDF, or XDF file.")
@@ -36,7 +40,7 @@ class PSGDataManager:
             os.makedirs(os.path.dirname(storage_path), exist_ok=True)
             current_app.logger.info(
                 "[upload] Receiving file name=%r type=%s mime=%r declared_size=%r",
-                uploaded_file.filename, ext[1:], uploaded_file.content_type,
+                '[redacted]', ext[1:], uploaded_file.content_type,
                 uploaded_file.content_length,
             )
             uploaded_file.save(storage_path)
@@ -63,7 +67,7 @@ class PSGDataManager:
             raw = mne.io.read_raw_edf(storage_path, preload=False)
             psg_file = PSGFile(
                 filename=filename,
-                original_filename=uploaded_file.filename,
+                original_filename=safe_name,
                 upload_date=datetime.now(),
                 file_size=os.path.getsize(storage_path),
                 storage_path=storage_path,
@@ -137,6 +141,18 @@ class PSGDataManager:
                 print('Loading EDF')
                 cls._files_in_memory[file_path] = mne.io.read_raw_edf(file_path, preload=False)
         return cls._files_in_memory[file_path]
+
+    @classmethod
+    def evict_file(cls, file_path):
+        """Remove a recording from the process cache and close any open handle."""
+        with cls._files_lock:
+            raw = cls._files_in_memory.pop(file_path, None)
+        if raw is not None:
+            close = getattr(raw, 'close', None)
+            if callable(close):
+                close()
+            return True
+        return False
 
     @classmethod
     def read_partial_edf(cls, psg_file: PSGFile, offset: float, duration: float):

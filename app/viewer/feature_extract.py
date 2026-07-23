@@ -52,7 +52,7 @@ ALL_FEATURE_LABELS = {
 class PSGFeatureComputation:
     def __init__(self, edf_path, channel_mapping, notch_freq=60, log_callback=None,
                  selected_features=None, actual_age=None, annot_df=None, q=None,
-                 custom_code=None, custom_figure_code=None):
+                 custom_code=None, custom_figure_code=None, cancel_check=None):
         self.annot_df = annot_df
         self.q = q
         self.custom_code        = custom_code
@@ -76,6 +76,7 @@ class PSGFeatureComputation:
         self.channel_mapping = channel_mapping
         self.notch_freq = notch_freq
         self._log_callback = log_callback
+        self._cancel_check = cancel_check or (lambda: None)
         self.edf_ch_names = mne.io.read_raw_edf(edf_path, verbose=False, preload=False).ch_names
 
         self.channel_group_names = ['eeg', 'eog', 'ecg', 'chin_emg', 'limb_emg', 'rip', 'nasalpressure', 'airflow', 'spo2']
@@ -107,14 +108,18 @@ class PSGFeatureComputation:
         self._log("Starting feature extraction...")
 
         self._log('Getting signals...')
+        self._cancel_check()
         self.get_signals()
+        self._cancel_check()
         self._log('Preprocessing...')
         self.preprocess_signals()
+        self._cancel_check()
 
         self.feats = {}       # single-value features
         self.detections = {}  # non-scalar detections
 
         for feat, feat_txt in zip(self.feature_steps, self.feature_steps_txt):
+            self._cancel_check()
             self._log(f'\nGetting {feat_txt}...')
             start_time = timeit.default_timer()
 
@@ -157,6 +162,7 @@ class PSGFeatureComputation:
                         log=self._log,
                         n_jobs=1,
                         notch_freq=self.notch_freq,
+                        work_dir=os.path.dirname(self.edf_path),
                     )
                 except Exception:
                     import traceback
@@ -217,6 +223,7 @@ class PSGFeatureComputation:
 
             self.feats |= f
             self.detections |= d
+            self._cancel_check()
             end_time = timeit.default_timer()
             self._log(f'{feat} finished in {end_time-start_time:.2f} seconds.')
 
@@ -475,6 +482,4 @@ if __name__=='__main__':
     plt.grid()
     plt.tight_layout()
     plt.savefig('updated_delta_power_scatterplot2.pdf', bbox_inches='tight')
-
-
 

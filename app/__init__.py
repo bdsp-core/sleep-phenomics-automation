@@ -7,7 +7,7 @@ db = SQLAlchemy()
 from flask_login import LoginManager, login_required, current_user
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
-from .models.user import User
+from .models.user import PSGFile, User
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -18,6 +18,10 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY='dev', # will be overridden by config
+        SPA_JOB_CACHE_ROOT=os.path.join(app.instance_path, 'spa_jobs'),
+        SPA_JOB_RETENTION_SECONDS=3600,
+        SPA_JOB_TIMEOUT_SECONDS=7200,
+        SPA_RESULT_RETENTION_SECONDS=3600,
     )
 
     if test_config is None:
@@ -52,6 +56,30 @@ def create_app(test_config=None):
 
     with app.app_context():
         db.create_all()
+
+        # Recover PHI-bearing files left by a crash, forced worker exit, OOM,
+        # machine restart, or an abandoned pre-processing upload.
+        from .viewer.privacy_cleanup import purge_stale_uploads, purge_stale_workspaces
+        purge_stale_workspaces(
+            app.config['SPA_JOB_CACHE_ROOT'],
+            app.config['SPA_JOB_RETENTION_SECONDS'],
+            logger=app.logger,
+        )
+        purge_stale_uploads(
+            app.config['DATA_PATH'],
+            app.config['SPA_JOB_RETENTION_SECONDS'],
+            logger=app.logger,
+        )
+
+        # Remove metadata records whose protected file was purged. Only a count is
+        # logged; database filenames may contain identifiers.
+        missing = [record for record in PSGFile.query.all()
+                   if not os.path.exists(record.storage_path)]
+        for record in missing:
+            db.session.delete(record)
+        if missing:
+            db.session.commit()
+            app.logger.info("[privacy-cleanup] stale database records removed=%d", len(missing))
 
     
 

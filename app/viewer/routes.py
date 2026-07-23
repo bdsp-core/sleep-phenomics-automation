@@ -12,11 +12,13 @@ import shutil
 import re
 import mne
 from werkzeug.datastructures import FileStorage
+from werkzeug.utils import secure_filename
 import tempfile
 import io
 import uuid
 import queue
 import threading
+import time
 import logging
 import pickle
 import smtplib
@@ -31,13 +33,28 @@ from flask import Response, stream_with_context
 from .feature_extract import PSGFeatureComputation, FEATURE_RUNNING_TIMES
 from .data_processing import MONTAGE_CHANNELS
 from .xdf_parser import XDFError, XDFStreamSelectionRequired
+from .privacy_cleanup import JobWorkspace, UnsafeCleanupPath, safe_remove
 
 # In-memory store for phenomics computation jobs: job_id -> dict
 _phenotype_jobs = {}
 
+
+class PhenotypeJobCancelled(Exception):
+    pass
+
+
+class PhenotypeJobTimedOut(Exception):
+    pass
+
 MAX_CONCURRENT_JOBS = 3
 _job_queue = []        # ordered list of queued job_ids
 _jobs_lock = threading.Lock()
+
+
+def _expire_phenotype_job(job_id):
+    """Drop in-memory clinical results and job closures after the download window."""
+    with _jobs_lock:
+        _phenotype_jobs.pop(job_id, None)
 
 # Standard channels that are computed as (positive electrode) - (negative electrode)
 REFERENTIAL_CHANNELS = {
@@ -216,6 +233,10 @@ def upload():
 
 _ANNOTATION_EXTS = {'.txt', '.csv', '.tsv', '.xlsx', '.xls'}
 
+
+def _is_safe_leaf_filename(filename):
+    return bool(filename and filename == os.path.basename(filename) and secure_filename(filename) == filename)
+
 @viewer_bp.route('/use_example_annotation')
 @login_required
 def use_example_annotation():
@@ -239,14 +260,17 @@ def upload_annotation():
     edf_filename = request.form.get('edf_filename', '')
     if not uploaded_file:
         return jsonify({'error': 'No file provided'}), 400
-    ext = os.path.splitext(uploaded_file.filename)[1].lower()
+    safe_name = secure_filename(uploaded_file.filename or '')
+    if not safe_name:
+        return jsonify({'error': 'Invalid filename'}), 400
+    ext = os.path.splitext(safe_name)[1].lower()
     if ext not in _ANNOTATION_EXTS:
         return jsonify({'error': f'Unsupported format: {ext}'}), 400
     user_dir = os.path.join(current_app.config['DATA_PATH'], str(current_user.id))
     os.makedirs(user_dir, exist_ok=True)
-    uploaded_file.save(os.path.join(user_dir, uploaded_file.filename))
+    uploaded_file.save(os.path.join(user_dir, safe_name))
     return jsonify({'redirect': url_for('viewer.annotation_mapping',
-                                        annot_file=uploaded_file.filename,
+                                        annot_file=safe_name,
                                         edf_file=edf_filename)})
 
 
@@ -255,6 +279,8 @@ def upload_annotation():
 def annotation_mapping():
     annot_file = request.args.get('annot_file', '')
     edf_file   = request.args.get('edf_file', '')
+    if not _is_safe_leaf_filename(annot_file):
+        return "Invalid annotation filename", 400
     ext = os.path.splitext(annot_file)[1].lower()
     return render_template('annotation_mapping.html',
                            annot_file=annot_file,
@@ -267,6 +293,8 @@ def annotation_mapping():
 def apply_annotation():
     from .annotation_parser import parse_annotation
     annot_file      = request.form.get('annot_file', '')
+    if not _is_safe_leaf_filename(annot_file):
+        return jsonify({'error': 'Invalid annotation filename'}), 400
     edf_file        = request.form.get('edf_file', '')
     separator       = request.form.get('separator', ',')
     onset_col       = int(request.form.get('onset_col', 1))
@@ -351,6 +379,7 @@ def delete_psg_file(psg_file):
     try:
         # Get the file's storage location
         main_file_path = psg_file.storage_path
+        PSGDataManager.evict_file(main_file_path)
 
         # Get all associated derived files
         derived_files = DerivedFile.query.filter_by(psg_file_id=psg_file.id).all()
@@ -358,31 +387,39 @@ def delete_psg_file(psg_file):
         # Collect all file paths to remove
         file_paths_to_remove = [main_file_path]
         
-        # Delete derived files from database and collect their paths
+        # Collect derived paths before deleting database records.
         for derived_file in derived_files:
             file_paths_to_remove.append(derived_file.storage_path)
-            db.session.delete(derived_file)
-        
-        # Delete main PSG file record from database
-        db.session.delete(psg_file)
-        db.session.commit()
-        
-        # Delete physical files from storage
+
+        # Delete PHI-bearing files first. If cleanup fails, retain the database
+        # record so the operation can be retried instead of orphaning the file.
+        data_root = current_app.config['DATA_PATH']
+        job_root = current_app.config['SPA_JOB_CACHE_ROOT']
+        cleanup_ok = True
         for file_path in file_paths_to_remove:
             try:
-                if os.path.exists(file_path):
-                    if os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                    else:
-                        os.remove(file_path)
+                try:
+                    safe_remove(file_path, data_root)
+                except UnsafeCleanupPath:
+                    safe_remove(file_path, job_root)
             except Exception as e:
-                current_app.logger.error(f"Error removing file {file_path}: {str(e)}")
-                # Continue with other deletions even if one fails
+                cleanup_ok = False
+                current_app.logger.error(
+                    "[privacy-cleanup] stored-file cleanup failed error_type=%s",
+                    type(e).__name__,
+                )
+        if not cleanup_ok:
+            return False
+
+        for derived_file in derived_files:
+            db.session.delete(derived_file)
+        db.session.delete(psg_file)
+        db.session.commit()
         
         return True
         
     except Exception as e:
-        current_app.logger.error(f"Error deleting file: {str(e)}")
+        current_app.logger.error("[privacy-cleanup] database cleanup failed error_type=%s", type(e).__name__)
         db.session.rollback()
         return False
 
@@ -506,6 +543,8 @@ def delete_file():
         # Also delete annotation files if provided
         annot_file = data.get('annot_file')
         if annot_file:
+            if not _is_safe_leaf_filename(annot_file):
+                return jsonify({"error": "Invalid annotation filename"}), 400
             user_dir = os.path.join(current_app.config['DATA_PATH'], str(current_user.id))
             for path in [
                 os.path.join(user_dir, annot_file),
@@ -513,9 +552,12 @@ def delete_file():
             ]:
                 if os.path.exists(path):
                     try:
-                        os.remove(path)
+                        safe_remove(path, user_dir)
                     except Exception as e:
-                        current_app.logger.error(f"Error removing annotation file {path}: {e}")
+                        current_app.logger.error(
+                            "[privacy-cleanup] annotation cleanup failed error_type=%s",
+                            type(e).__name__,
+                        )
 
         current_app.logger.debug(f"[delete_file] Deletion successful")
         return jsonify({"success": True, "message": "File deleted successfully"}), 200
@@ -911,9 +953,9 @@ def send_results_email(to_email, stem, csv_data, png_bytes, app):
                 server.starttls()
             server.login(mail_username, mail_password)
             server.sendmail(mail_from, to_email, msg.as_string())
-        _log.info(f"Results email sent to {to_email}")
+        _log.info("Results email sent")
     except Exception as e:
-        _log.error(f"Failed to send results email: {e}")
+        _log.error("Results email failed error_type=%s", type(e).__name__)
 
 
 @viewer_bp.route('/start_phenotypes', methods=['POST'])
@@ -931,8 +973,8 @@ def start_phenotypes():
     if not psg_file:
         return jsonify({'error': f"File '{filename}' not found"}), 404
 
-    edf_path = psg_file.storage_path
-    if not os.path.exists(edf_path):
+    original_edf_path = psg_file.storage_path
+    if not os.path.exists(original_edf_path):
         return jsonify({'error': 'EDF file not found on disk'}), 404
 
     channel_mapping = psg_file.get_channel_mapping()
@@ -949,6 +991,8 @@ def start_phenotypes():
         annot_file = request.form.get('annot_file', '')
         if not annot_file:
             return jsonify({'error': 'Annotation file not specified.'}), 400
+        if not _is_safe_leaf_filename(annot_file):
+            return jsonify({'error': 'Invalid annotation filename.'}), 400
         stages_path = os.path.join(current_app.config['DATA_PATH'], str(current_user.id),
                                    os.path.splitext(annot_file)[0] + '_stages.csv')
         if not os.path.exists(stages_path):
@@ -966,12 +1010,57 @@ def start_phenotypes():
 
     user_email = current_user.email
     user_id    = current_user.id
+    psg_file_id = psg_file.id
     flask_app  = current_app._get_current_object()
     data_path  = current_app.config['DATA_PATH']
     recording_date_iso = psg_file.recording_date.isoformat() if psg_file.recording_date else None
 
     job_id = str(uuid.uuid4())
     log_queue = queue.Queue()
+    workspace = JobWorkspace(
+        current_app.config['SPA_JOB_CACHE_ROOT'], job_id=job_id,
+        logger=current_app.logger,
+    )
+    try:
+        workspace.create()
+        edf_extension = os.path.splitext(original_edf_path)[1].lower() or '.edf'
+        edf_path = str(workspace.move_into(original_edf_path, f'input/recording{edf_extension}'))
+        PSGDataManager.evict_file(original_edf_path)
+        psg_file.storage_path = edf_path
+
+        # Annotation files are already parsed into memory above. Move the originals
+        # into this workspace as well so a crash leaves no PHI in the shared user dir.
+        if annot_file:
+            if annot_file != os.path.basename(annot_file):
+                raise ValueError('Invalid annotation filename')
+            user_dir = os.path.join(data_path, str(user_id))
+            for suffix, destination in [
+                ('', 'input/annotation'), ('_stages.csv', 'input/annotation_stages.csv')
+            ]:
+                source_name = annot_file if not suffix else os.path.splitext(annot_file)[0] + suffix
+                source = os.path.join(user_dir, source_name)
+                if os.path.exists(source):
+                    workspace.move_into(source, destination)
+        db.session.commit()
+    except Exception as setup_error:
+        db.session.rollback()
+        # A processing attempt has begun; fail closed and purge both possible roots.
+        try:
+            safe_remove(original_edf_path, data_path)
+        except (OSError, UnsafeCleanupPath):
+            pass
+        workspace.cleanup()
+        try:
+            db.session.delete(psg_file)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        current_app.logger.error(
+            "[privacy-cleanup] job setup failed job_id=%s error_type=%s",
+            job_id, type(setup_error).__name__,
+        )
+        return jsonify({'error': 'The analysis could not be started safely.'}), 500
+
     _phenotype_jobs[job_id] = {
         'log': log_queue,
         'csv': None,
@@ -982,23 +1071,36 @@ def start_phenotypes():
         'done': False,
         'status': 'queued',
         'run_fn': None,
+        'user_id': user_id,
+        'cancel_event': threading.Event(),
+        'workspace': workspace,
+        'psg_file_id': psg_file_id,
     }
 
     def run_job():
         _log = logging.getLogger(__name__)
         pkl_bytes = None
         csv_str = None
-        result_dir = None
+        result_dir = str(workspace.child('results'))
+        deadline = time.monotonic() + flask_app.config['SPA_JOB_TIMEOUT_SECONDS']
         try:
             def log_cb(msg):
                 log_queue.put(('log', msg))
+
+            def cancel_check():
+                if _phenotype_jobs[job_id]['cancel_event'].is_set():
+                    raise PhenotypeJobCancelled()
+                if time.monotonic() >= deadline:
+                    raise PhenotypeJobTimedOut()
 
             pfc = PSGFeatureComputation(edf_path, channel_mapping, notch_freq=notch_freq, log_callback=log_cb,
                                         selected_features=selected_features, actual_age=actual_age,
                                         annot_df=annot_df, q=quality_index,
                                         custom_code=custom_code,
-                                        custom_figure_code=custom_figure_code)
+                                        custom_figure_code=custom_figure_code,
+                                        cancel_check=cancel_check)
             df_feat, detections = pfc.run()
+            cancel_check()
 
             buf = io.StringIO()
             df_feat.iloc[0].to_csv(buf, index=True, header=False)
@@ -1008,8 +1110,7 @@ def start_phenotypes():
             pkl_bytes = pickle.dumps(detections)
             _phenotype_jobs[job_id]['pkl'] = pkl_bytes
 
-            # Persist results to disk so they survive session closure / server restarts
-            result_dir = os.path.join(data_path, str(user_id))
+            # Short-lived result artifacts remain inside the unique job workspace.
             os.makedirs(result_dir, exist_ok=True)
             csv_path = os.path.join(result_dir, f'{stem}_phenotypes.csv')
             pkl_path = os.path.join(result_dir, f'{stem}_detections.pkl')
@@ -1018,51 +1119,76 @@ def start_phenotypes():
             with open(pkl_path, 'wb') as f:
                 f.write(pkl_bytes)
 
+            # Email is part of the protected job scope. Its temporary PNG is purged
+            # before the frontend is told that the job has completed.
+            if user_email:
+                try:
+                    png_bytes = generate_hypno_png(pkl_bytes, recording_date_iso, stem)
+                    png_path = os.path.join(result_dir, 'hypnogram.png')
+                    with open(png_path, 'wb') as f:
+                        f.write(png_bytes)
+                    send_results_email(user_email, stem, csv_str, png_bytes, flask_app)
+                    _log.info("Results email completed job_id=%s", job_id)
+                except Exception as email_err:
+                    _log.error(
+                        "Results email failed job_id=%s error_type=%s",
+                        job_id, type(email_err).__name__,
+                    )
+
+        except (PhenotypeJobCancelled, PhenotypeJobTimedOut) as e:
+            _phenotype_jobs[job_id]['error'] = (
+                'Analysis was cancelled and all uploaded and generated files were deleted.'
+                if isinstance(e, PhenotypeJobCancelled) else
+                'Analysis exceeded the processing time limit and all uploaded and generated files were deleted.'
+            )
+            _log.warning("Phenomics job stopped job_id=%s reason=%s", job_id, type(e).__name__)
         except Exception as e:
-            import traceback
-            _phenotype_jobs[job_id]['error'] = str(e)
-            _log.error(f"Phenomics job {job_id} failed: {traceback.format_exc()}")
+            _phenotype_jobs[job_id]['error'] = (
+                'Analysis failed while processing the recording. All uploaded and generated files were deleted.'
+            )
+            # Do not log exception strings or tracebacks: they commonly contain an
+            # uploaded filename/path. The exception class retains actionable category.
+            _log.error("Phenomics job failed job_id=%s error_type=%s", job_id, type(e).__name__)
         finally:
-            # Signal done immediately so the frontend can show the panel without
-            # waiting for the email step, which may block if SMTP is unreachable.
+            # This is the authoritative cleanup boundary for success, processing
+            # errors, parser failures, partial output, and subprocess failures.
+            try:
+                workspace.cleanup()
+            except Exception as cleanup_err:
+                _log.error(
+                    "[privacy-cleanup] workspace cleanup failed job_id=%s error_type=%s",
+                    job_id, type(cleanup_err).__name__,
+                )
+
+            # Remove the now-fileless database record independently of the request.
+            try:
+                with flask_app.app_context():
+                    stored = db.session.get(PSGFile, psg_file_id)
+                    if stored is not None:
+                        db.session.delete(stored)
+                        db.session.commit()
+            except Exception as db_error:
+                with flask_app.app_context():
+                    db.session.rollback()
+                _log.error(
+                    "[privacy-cleanup] job database cleanup failed job_id=%s error_type=%s",
+                    job_id, type(db_error).__name__,
+                )
+
+            # Only report completion after cleanup has been attempted.
+            _phenotype_jobs[job_id]['run_fn'] = None
+            _phenotype_jobs[job_id]['workspace'] = None
             _phenotype_jobs[job_id]['done'] = True
             _phenotype_jobs[job_id]['status'] = 'done'
             log_queue.put(('done', None))
             _try_dequeue()
-
-        # Send results email after signalling done so the UI is not blocked
-        if not _phenotype_jobs[job_id]['error'] and user_email and pkl_bytes and result_dir:
-            def log_cb(msg):  # redefine after finally block
-                _log.info(msg)
-            try:
-                png_bytes = generate_hypno_png(pkl_bytes, recording_date_iso, stem)
-                png_path = os.path.join(result_dir, f'{stem}_hypnogram.png')
-                with open(png_path, 'wb') as f:
-                    f.write(png_bytes)
-                send_results_email(user_email, stem, csv_str, png_bytes, flask_app)
-                _log.info(f"Results emailed to {user_email}.")
-            except Exception as email_err:
-                _log.error(f"Email step failed: {email_err}")
-
-        # Clean up generated files, annotation files, and the source EDF from disk
-        annot_paths = []
-        if annot_file and result_dir:
-            annot_paths = [
-                os.path.join(result_dir, annot_file),
-                os.path.join(result_dir, os.path.splitext(annot_file)[0] + '_stages.csv'),
-            ]
-        for path in [
-            os.path.join(result_dir, f'{stem}_phenotypes.csv') if result_dir else None,
-            os.path.join(result_dir, f'{stem}_detections.pkl') if result_dir else None,
-            os.path.join(result_dir, f'{stem}_hypnogram.png') if result_dir else None,
-            edf_path,
-            *annot_paths,
-        ]:
-            if path and os.path.exists(path):
-                try:
-                    os.remove(path)
-                except Exception as cleanup_err:
-                    _log.error(f"Cleanup failed for {path}: {cleanup_err}")
+            expiry = threading.Timer(
+                flask_app.config['SPA_RESULT_RETENTION_SECONDS'],
+                _expire_phenotype_job,
+                args=(job_id,),
+            )
+            expiry.daemon = True
+            expiry.start()
 
     _phenotype_jobs[job_id]['run_fn'] = run_job
 
@@ -1090,6 +1216,45 @@ def _try_dequeue():
             for i, jid in enumerate(_job_queue):
                 _phenotype_jobs[jid]['log'].put(('queued', i + 1))
             threading.Thread(target=_phenotype_jobs[next_id]['run_fn'], daemon=True).start()
+
+
+@viewer_bp.route('/cancel_phenotypes/<job_id>', methods=['POST'])
+@login_required
+def cancel_phenotypes(job_id):
+    """Request cooperative cancellation; queued jobs are purged immediately."""
+    job = _phenotype_jobs.get(job_id)
+    if not job or job.get('user_id') != current_user.id:
+        return jsonify({'error': 'Job not found'}), 404
+    job['cancel_event'].set()
+    with _jobs_lock:
+        if job_id in _job_queue:
+            _job_queue.remove(job_id)
+            job['status'] = 'cancelled'
+            try:
+                job['workspace'].cleanup()
+                stored = db.session.get(PSGFile, job['psg_file_id'])
+                if stored is not None:
+                    db.session.delete(stored)
+                    db.session.commit()
+            except Exception as cleanup_error:
+                db.session.rollback()
+                current_app.logger.error(
+                    "[privacy-cleanup] queued cancellation cleanup failed job_id=%s error_type=%s",
+                    job_id, type(cleanup_error).__name__,
+                )
+            job['error'] = 'Analysis was cancelled and all uploaded and generated files were deleted.'
+            job['run_fn'] = None
+            job['workspace'] = None
+            job['done'] = True
+            job['log'].put(('done', None))
+            expiry = threading.Timer(
+                current_app.config['SPA_RESULT_RETENTION_SECONDS'],
+                _expire_phenotype_job,
+                args=(job_id,),
+            )
+            expiry.daemon = True
+            expiry.start()
+    return jsonify({'status': 'cancellation_requested'})
 
 
 @viewer_bp.route('/phenotypes_progress/<job_id>')
