@@ -118,8 +118,23 @@ function go_to_start() {
     jumpToTime(0);
 }
 
+function isViewingEndOfStudy() {
+    const currentSegment = buffer[readPointer];
+    if (!currentSegment) return false;
+
+    return recordingDuration != null
+        ? (currentSegment.index + 1) * dur >= recordingDuration
+        : currentSegment.index == max_ind;
+}
+
 function go_to_end() {
     if (!buffer[readPointer] || recordingDuration == null) return;
+
+    if (isViewingEndOfStudy()) {
+        alert("You have reached the end of the sleep study.")
+        return
+    }
+
     jumpToTime(recordingDuration - dur);
 }
 
@@ -317,8 +332,9 @@ function jumpToTime(time) {
 
 // Moves the read pointer to the right, fetches new data if necessary
 function go_right() {
-    if (buffer[readPointer].index == max_ind){
+    if (isViewingEndOfStudy()) {
         console.log("At end of recording")
+        alert("You have reached the end of the sleep study.")
         return
     }
 
