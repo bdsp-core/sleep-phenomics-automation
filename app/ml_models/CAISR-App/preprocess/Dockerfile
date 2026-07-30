@@ -8,7 +8,7 @@ ENV TZ=America/New_York
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y python3-pip python3-venv python3-tk && \
+    apt-get install -y libhdf5-dev python3-pip python3-venv python3-tk && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY caisr_preprocess.py /data/
@@ -23,4 +23,3 @@ RUN python3 -m venv /caisr_preprocess && \
 
 # Set the ENTRYPOINT to run the script automatically
 ENTRYPOINT ["/bin/bash", "-c", "source /caisr_preprocess/bin/activate && exec python caisr_preprocess.py"]
-

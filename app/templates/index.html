@@ -552,11 +552,42 @@
                 border-radius: 6px;
                 transition: width 0.2s ease;
             }
+            #uploadProgressBar.processing #uploadProgressFill {
+                width: 35% !important;
+                animation: uploadProcessing 1.4s ease-in-out infinite;
+            }
+            @keyframes uploadProcessing {
+                0% { transform: translateX(-110%); }
+                100% { transform: translateX(300%); }
+            }
+            #uploadProgressDetail,
+            #phenomicsProgressStatus {
+                margin-top: 10px;
+                color: #667085;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            #phenomicsProgressBar {
+                width: 100%;
+                height: 12px;
+                border-radius: 6px;
+                overflow: hidden;
+                background: #dde4ee;
+                margin-bottom: 6px;
+            }
+            #phenomicsProgressFill {
+                height: 100%;
+                width: 0%;
+                background: var(--primary-blue);
+                border-radius: 6px;
+                transition: width 0.4s ease;
+            }
         </style>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 		<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
+		<script src="/static/progress.js"></script>
 		<script src="/static/script.js"></script>
 		
 		<script>
@@ -754,27 +785,49 @@
                 const progressOverlay = document.getElementById('uploadProgressOverlay');
                 const progressFill = document.getElementById('uploadProgressFill');
                 const progressLabel = document.getElementById('uploadProgressLabel');
+                const progressBar = document.getElementById('uploadProgressBar');
+                const progressDetail = document.getElementById('uploadProgressDetail');
                 const fileName = document.getElementById('fileUpload').files[0]?.name || 'file';
+                const uploadStartedAt = Date.now();
+                let processingStartedAt = null;
+                let uploadProgressTimer = null;
                 progressFill.style.width = '0%';
                 progressLabel.textContent = 'Uploading ' + fileName + '… 0%';
+                progressDetail.textContent = 'Preparing upload…';
+                progressBar.classList.remove('processing');
                 progressOverlay.classList.add('active');
 
                 const xhr = new XMLHttpRequest();
 
                 xhr.upload.addEventListener('progress', function(e) {
                     if (e.lengthComputable) {
-                        const pct = Math.round((e.loaded / e.total) * 100);
-                        progressFill.style.width = pct + '%';
-                        progressLabel.textContent = 'Uploading ' + fileName + '… ' + pct + '%';
+                        const elapsedSeconds = (Date.now() - uploadStartedAt) / 1000;
+                        const snapshot = SPAProgress.uploadSnapshot(e.loaded, e.total, elapsedSeconds);
+                        progressFill.style.width = snapshot.percent + '%';
+                        progressBar.setAttribute('aria-valuenow', snapshot.percent);
+                        progressLabel.textContent = 'Uploading ' + fileName + '… ' + snapshot.percent + '%';
+                        progressDetail.textContent = snapshot.remainingSeconds > 0
+                            ? 'About ' + SPAProgress.formatDuration(snapshot.remainingSeconds) + ' remaining'
+                            : 'Finishing file transfer…';
                     }
                 });
 
                 xhr.upload.addEventListener('load', function() {
-                    progressFill.style.width = '100%';
                     progressLabel.textContent = 'Parsing and validating ' + fileName + '…';
+                    progressDetail.textContent = 'Processing on the server… 0s elapsed';
+                    progressBar.classList.add('processing');
+                    progressBar.removeAttribute('aria-valuenow');
+                    processingStartedAt = Date.now();
+                    uploadProgressTimer = setInterval(function() {
+                        const elapsed = (Date.now() - processingStartedAt) / 1000;
+                        progressDetail.textContent =
+                            'Processing on the server… ' + SPAProgress.formatDuration(elapsed) + ' elapsed';
+                    }, 1000);
                 });
 
                 xhr.addEventListener('load', function() {
+                    clearInterval(uploadProgressTimer);
+                    progressBar.classList.remove('processing');
                     progressOverlay.classList.remove('active');
                     if (xhr.status === 409) {
                         let data;
@@ -796,6 +849,8 @@
                 });
 
                 xhr.addEventListener('error', function() {
+                    clearInterval(uploadProgressTimer);
+                    progressBar.classList.remove('processing');
                     progressOverlay.classList.remove('active');
                     alert("Error uploading file. Please try again.");
                 });
@@ -1122,17 +1177,60 @@
 
                 const logPanel = document.getElementById('phenomicsLog');
                 const logText  = document.getElementById('phenomicsLogText');
+                const progressFill = document.getElementById('phenomicsProgressFill');
+                const progressBar = document.getElementById('phenomicsProgressBar');
+                const progressStatus = document.getElementById('phenomicsProgressStatus');
                 logText.value  = '';
                 logPanel.style.display = 'block';
+                progressFill.style.width = '0%';
+                progressBar.setAttribute('aria-valuenow', '0');
+                progressStatus.textContent = 'Preparing computation…';
 
                 const formData = new FormData();
                 formData.append('filename', selectedFile);
                 formData.append('notch_freq', document.getElementById('notch_f').value);
 
                 // Collect selected phenomics features
+                const selectedFeatures = [];
                 document.querySelectorAll('.pheno-check:checked').forEach(cb => {
                     formData.append('selected_features', cb.value);
+                    selectedFeatures.push(cb.value);
                 });
+                const estimatedSeconds = SPAProgress.selectedFeatureEstimate(
+                    selectedFeatures, PHENOMICS_RUNNING_TIMES
+                );
+                let computationStartedAt = null;
+                let computationProgressTimer = null;
+
+                function updateComputationProgress() {
+                    if (computationStartedAt === null) return;
+                    const elapsed = (Date.now() - computationStartedAt) / 1000;
+                    const snapshot = SPAProgress.computationSnapshot(elapsed, estimatedSeconds);
+                    progressFill.style.width = snapshot.percent + '%';
+                    progressBar.setAttribute('aria-valuenow', snapshot.percent);
+                    const estimateText = snapshot.remainingSeconds === null
+                        ? ''
+                        : ' • about ' + SPAProgress.formatDuration(snapshot.remainingSeconds) + ' remaining';
+                    progressStatus.textContent =
+                        'Computing… ' + SPAProgress.formatDuration(elapsed) + ' elapsed' + estimateText;
+                }
+
+                function startComputationProgress() {
+                    if (computationProgressTimer !== null) return;
+                    computationStartedAt = Date.now();
+                    updateComputationProgress();
+                    computationProgressTimer = setInterval(updateComputationProgress, 1000);
+                }
+
+                function stopComputationProgress(status, completed) {
+                    clearInterval(computationProgressTimer);
+                    computationProgressTimer = null;
+                    if (completed) {
+                        progressFill.style.width = '100%';
+                        progressBar.setAttribute('aria-valuenow', '100');
+                    }
+                    progressStatus.textContent = status;
+                }
 
                 // Annotation file (for from_annotation staging)
                 if (document.getElementById('fromAnnotationRadio').checked && _currentAnnotFile) {
@@ -1162,6 +1260,7 @@
                     .then(data => {
                         if (data.error) {
                             logText.value += 'Error: ' + data.error + '\n';
+                            stopComputationProgress('Computation could not be started.', false);
                             btn.textContent = 'Compute Phenomics';
                             btn.disabled = false;
                             setFileManagementDisabled(false);
@@ -1172,6 +1271,7 @@
                             const overlay = document.getElementById('queueNotificationOverlay');
                             const text = document.getElementById('queueNotificationText');
                             text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically once others finished their job. `;
+                            progressStatus.textContent = `Waiting in queue — position #${position}`;
                             overlay.classList.add('active');
                         }
 
@@ -1181,14 +1281,18 @@
                             if (overlay.classList.contains('active')) {
                                 text.textContent = `SPA is configured to have maximum ${maxJobs} users at the same time. You're #${position} in queue. Your job will start automatically once others finished their job. `;
                             }
+                            progressStatus.textContent = `Waiting in queue — position #${position}`;
                         }
 
                         if (data.queued) {
                             showQueueNotification(data.position, data.max_jobs);
+                        } else {
+                            startComputationProgress();
                         }
 
                         function connectSSE(job_id, maxJobs) {
                             const es = new EventSource('/viewer/phenotypes_progress/' + job_id);
+                            let terminalEventReceived = false;
 
                             es.addEventListener('queued', (e) => {
                                 updateQueuePosition(parseInt(e.data), maxJobs);
@@ -1197,12 +1301,15 @@
                             es.onmessage = (e) => {
                                 // First log message means the job has started — dismiss queue notification
                                 document.getElementById('queueNotificationOverlay').classList.remove('active');
+                                startComputationProgress();
                                 logText.value += e.data + '\n';
                                 logText.scrollTop = logText.scrollHeight;
                             };
 
                             es.addEventListener('done', () => {
+                                terminalEventReceived = true;
                                 es.close();
+                                stopComputationProgress('Computation complete.', true);
                                 logText.value += 'Use the "Download Phenomics" button to get results.\n';
                                 logText.scrollTop = logText.scrollHeight;
                                 window._phenomicsJobId = job_id;
@@ -1231,7 +1338,9 @@
                             });
 
                             es.addEventListener('error', (e) => {
+                                terminalEventReceived = true;
                                 es.close();
+                                stopComputationProgress('Computation failed.', false);
                                 logText.value += 'Error: ' + (e.data || 'unknown') + '\n';
                                 logText.scrollTop = logText.scrollHeight;
                                 btn.textContent = 'Compute Phenomics';
@@ -1240,6 +1349,7 @@
                             });
 
                             es.onerror = () => {
+                                if (terminalEventReceived) return;
                                 es.close();
                                 logText.value += 'Connection lost — reconnecting...\n';
                                 logText.scrollTop = logText.scrollHeight;
@@ -1249,6 +1359,7 @@
                         connectSSE(data.job_id, data.max_jobs || 3);
                     })
                     .catch(err => {
+                        stopComputationProgress('Computation could not be started.', false);
                         logText.value += 'Error: ' + err.message + '\n';
                         btn.textContent = 'Compute Phenomics';
                         btn.disabled = false;
@@ -1334,6 +1445,7 @@
 
             // Files already uploaded by this user — used for instant client-side duplicate check
             const _uploadedFiles = new Set({{ files | tojson }});
+            const PHENOMICS_RUNNING_TIMES = {{ running_times | tojson }};
 
             {% if selected %}
             window.addEventListener('DOMContentLoaded', () => {
@@ -1622,6 +1734,11 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 		<!-- Phenomics progress log -->
 		<div id="phenomicsLog" style="display:none; margin: 10px 0;">
 			<h4 style="margin: 0 0 6px 0; color: var(--dark-gray); font-weight: 600;">Sleep Phenomics Progress</h4>
+			<div id="phenomicsProgressBar" role="progressbar" aria-label="Phenomics computation progress"
+				 aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+				<div id="phenomicsProgressFill"></div>
+			</div>
+			<div id="phenomicsProgressStatus" aria-live="polite">Preparing computation…</div>
 			<textarea id="phenomicsLogText" readonly
 				style="width:100%; height:160px; resize:none; font-family:monospace; font-size:13px;
 				       background:#ffffff; color:#000000; border:1px solid var(--border-gray);
@@ -1753,8 +1870,12 @@ def my_phenotype(sid=None, signals=None, fs=None, channels=None, sleep_stages=No
 	<!-- Upload progress overlay (fixed, above all content) -->
 	<div id="uploadProgressOverlay">
 		<div id="uploadProgressContainer">
-			<div id="uploadProgressLabel">Uploading… 0%</div><!-- text set dynamically -->
-			<div id="uploadProgressBar"><div id="uploadProgressFill"></div></div>
+			<div id="uploadProgressLabel" aria-live="polite">Uploading… 0%</div><!-- text set dynamically -->
+			<div id="uploadProgressBar" role="progressbar" aria-label="EDF upload progress"
+				 aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+				<div id="uploadProgressFill"></div>
+			</div>
+			<div id="uploadProgressDetail">Preparing upload…</div>
 		</div>
 	</div>
 	<footer style="text-align:center; padding: 16px; font-size: 12px; color: #888;">

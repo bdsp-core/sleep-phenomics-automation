@@ -2,6 +2,10 @@ import os, sys, docker, shutil, subprocess, platform, gzip
 import pandas as pd
 from typing import List, Tuple
 
+# These legacy model environments only provide compatible x86_64 dependencies.
+# Docker Desktop and Colima transparently emulate them on Apple Silicon.
+AMD64_TASKS = {'stage', 'arousal', 'limb'}
+
 # List all Docker images
 def list_images(client: docker.DockerClient) -> None:
     '''
@@ -81,7 +85,10 @@ def create_docker(Dockerfile: str, task: str) -> None:
     print(f"\n--> Creating docker '{task}' (this takes some time..)")
     try:
         # Determine the base command
-        docker_command = ['docker', 'build', '-t', f'caisr_{task}', '.']
+        docker_command = ['docker', 'build']
+        if platform.machine().lower() in {'arm64', 'aarch64'} and task in AMD64_TASKS:
+            docker_command.extend(['--platform', 'linux/amd64'])
+        docker_command.extend(['-t', f'caisr_{task}', '.'])
 
         # Add 'sudo' if running on Linux
         if platform.system().lower() == 'linux':

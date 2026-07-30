@@ -28,15 +28,17 @@ On Mac
 ```
 # install colima
 # colima delete     # if previous instance exists
-colima start --memory 12 --cpu 4
+colima start --memory 12 --cpu 4 --vm-type vz --vz-rosetta
 
 # setup venv and docker
 python -m venv venv
 source venv/bin/activate
-DOCKER_HOST=unix:///$HOME/.colima/docker.sock python create_caisr_dockers.py
+cd app/ml_models/CAISR-App
+DOCKER_HOST=unix://$HOME/.colima/docker.sock python create_caisr_dockers.py
+cd ../../..
 
 # run
-DOCKER_HOST=unix:///$HOME/.colima/docker.sock python -Wignore app.py
+DOCKER_HOST=unix://$HOME/.colima/docker.sock python -Wignore app.py
 ```
 
 On Linux
