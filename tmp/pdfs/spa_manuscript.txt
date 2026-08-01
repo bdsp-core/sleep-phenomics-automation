@@ -1,0 +1,990 @@
+
+===== PAGE 1 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                Sleep Phenomics Automation  (SPA): A  Web  Tool                   
+                                                                                  
+                     for Sleep Signal Phenotype Extraction                        
+                                                                                  
+                                                                                  
+                  Mithun Ganapathy Arun1, Samvrit Rao2, Samuel Waters3,           
+                    Niels Turley3, Jiahao Fan4, Licong Cui4, Yue Leng5,           
+                        Janet M. Mullington3, Robert J. Thomas6,                  
+                          M. Brandon Westover3,7, Haoqi Sun3*                     
+                                                                                  
+                    1Siebel School of Computer Science, University of Illinois    
+                        Urbana-Champaign, Urbana, IL 61801, USA.                  
+                       2Columbia University, New York, NY 10027, USA.             
+                 3Department of Neurology, Beth Israel Deaconess Medical Center,  
+                               Boston, MA 02215, USA.                             
+                4University of Texas Health Science Center at Houston, Houston, TX
+                                   77030, USA.                                    
+                 5Department of Psychiatry and Behavioral Sciences, University of 
+                    California, San Francisco, San Francisco, CA 94143, USA.      
+                6Division of Pulmonary, Critical Care and Sleep Medicine, Beth Israel
+                      Deaconess Medical Center, Boston, MA 02215, USA.            
+                   7Department of Neurology & Neurological Sciences, Stanford     
+                                                                                  
+                           University, Stanford, CA 94305, USA.                   
+                                                                                  
+                  *Corresponding author(s). E-mail(s): hsun3@bidmc.harvard.edu;   
+                                                                                  
+                                                                                  
+                                     Abstract                                     
+                 Purpose: Sleep contains rich multi-organ physiology, which can be accessed
+                 through polysomnography (PSG). Yet, the quantification of a comprehensive
+                 set of phenotypes, which we call sleep phenomics, poses a computational bar-
+                 rier for clinicians and researchers interested in education, exploratory analysis,
+                 and hypothesis-driven research. Meanwhile, the rapid development of artificial
+                 intelligence(AI)andvariousPSGmarkersproposedintheliteraturearefurther
+                 widening this barrier.                                           
+                 Methods: Here, we propose Sleep Phenomics Automation (SPA), a web-based
+                 platform that enables users to upload a sleep recording in the European Data
+                                                                                  
+                                                                                  
+                                       1                                          
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 2 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                    Format (EDF), visualize the signals, and download the phenomics in a tabu-
+                    lar comma-separated values (CSV) format. The target users are sleep medicine
+                    trainees,clinicians,andresearchersinterestedinsleepphenotypesorconducting
+                    research.                                                     
+                    Results:WeprovidedadescriptionofhowtouseSPA,accompaniedbyscreen-
+                    shots. Using SPA, we demonstrated an age-dependent decrease in delta-band
+                    power during N3. The first version of SPA includes a small selected set of
+                    sleep phenotypes suitable for the adult population that cover both macrostruc-
+                    ture (hypnogram and hypnodensity) and microstructures, including Complete
+                    AISleepReport,electroencephalography(EEG)spectrogram,EEGbandPower,
+                    spindle, slow oscillation, EEG-based brain age, hypoxic burden, self-similarity,
+                    and heart rate variability. More phenotypes will be added in later versions.
+                    Advanced users proposing new phenotypes can experiment with them on the
+                    SPA website and contact SPA to make them available to the public.
+                    Conclusion: SPA is for educational and research purposes. It requires zero
+                    coding for basic users and provides a centralized, web-based, no-installation
+                    interface, lowering the barrier to PSG phenotype extraction, visualization, and
+                    reproducible sleep research. SPA is available for non-commercial use at https:
+                    //sleep-phenomics-spa.ngrok.app.                              
+                    Keywords:Polysomnography,SleepPhenotypes,SignalAnalytics,WebTool
+                 Statements and Declarations                                      
+                                                                                  
+                 HS is a editorial board member of Journal of Clinical Sleep Medicine. HS is sup-
+                 ported by the American Academy of Sleep Medicine Foundation 370-SR-25. MBW
+                 is supported by grants from the NIH (R01AG073410, R01HL161253, R01NS126282,
+                 R01AG073598,R01NS131347,R01NS130119).MBWisaco-founder,scientificadvisor
+                 andconsultanttoBeaconBiosignalsandhasapersonalequityinterestinthecompany.
+                 RJTreports:(1)patentandlicencetoMyCardioLLC,forECG-spectrogram;(2)grant
+                 support, licence and intellectual property (licensed patents) from DeVilbiss-Drive
+                 Healthcare;(3)unlicensedpatentforadeviceregulationCO2duringpositivepressure
+                 therapy, for central sleep apnea; (4) patent submitted for respiratory self-similarity
+                 for estimation of expressed high loop gain; (5) patent submitted for Enhanced Expi-
+                 ratory Rebreathing Space for treatment of high loop gain sleep apnea; (6) general
+                 sleep medicine consulting: GLG Councils, Guidepoint Global; (5) Consultant-Jazz
+                 Pharmaceuticals.                                                 
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                          2                                       
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 3 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+              1 Introduction                                                      
+              Polysomnography (PSG) is the clinical gold standard for diagnosing sleep disorders,
+              generating rich multi-organ physiological data that includes electroencephalography
+              (EEG), electromyography (EMG), electrooculography (EOG), electrocardiography
+              (ECG), respiratory signals, and oxygen saturation [1, 2]. PSG signals contain diverse
+              phenotypic information that can help reveal physiological processes relevant to neu-
+              rodegenerative disorders, cardiovascular disease, metabolic dysfunction [3–6], etc.
+              Recent progress made in signal processing and artificial intelligence (AI) for PSG sig-
+              nals has enabled the automation of sleep pattern extraction (i.e., feature extraction
+              in AI terminology) extraction, sleep staging, and health outcome predictions [7–13].
+              However,thebroaderuseoftheseresearchfindingsineducationandresearchhasbeen
+              hinderedbyacriticalgap:manyresearchersandclinicianswhogenerateclinicallyrel-
+              evant hypotheses often lack the computational expertise to quantify the phenotypes
+              and test them, while the tools required to extract phenotypes remain inaccessible to
+              non-programmers [14–16].                                            
+                SeveralplatformshavebeendevelopedtoaddresstheneedforPSGanalysistools.
+              Moonlight is an interactive viewer for polysomnographic (PSG) data built on top
+              of the Luna software ecosystem [17]. It supports summary statistics, signal view-
+              ing, automated sleep staging, and comprehensive analysis of sleep signals. However,
+              extracting each phenotype requires command-line input, which can hinder adoption
+              byclinicianswholackspecializedcomputationalorinformaticstraining.LightWAVE,
+              available through PhysioNet [18], enables interactive visualization and basic annota-
+              tionofsignalsfromPhysioNet’sPhysioBankarchives,butitdoesnotofferautomated
+              phenotypeextraction,limitingitsutilityasananalyticalplatform.Altamira,hostedon
+              theNationalSleepResearchResource(NSRR)[19,20],offersabasicinteractiveviewer
+              without analytical capabilities. YouSleep based on U-sleep [21] provides a web-based
+              tool for high-frequency sleep staging, without phenotype extraction functionality.
+              Other web-based tools, such as hypoxic burden calculator and Cerebra MY Sleep
+              Scoring, have been discontinued. Local software solutions such as Visbrain [22] and
+              Lunascope [17] require installation of the software and its dependent software, com-
+              plicating accessibility in certain settings. Collectively, these platforms either require
+              substantial technical expertise, lack the breadth of clinically relevant phenotypes, or
+              function as simple signal viewers that are insufficient to support individual-level phe-
+              notypeextraction,whichisessentialfortheirutilityineducation,exploratoryanalysis,
+              and reproducible PSG-based research.                                
+                Here, we propose Sleep Phenomics Automation (SPA), a user-friendly web-based
+              platform designed to democratize access to PSG-derived phenotypes, that addresses
+              the limitations of existing tools. SPA provides a centralized, no-installation, upload-
+              and-download interface for computing a comprehensive suite of sleep phenotypes
+              (i.e., phenomics), including sleep architectural parameters, EEG microstructures,
+              ECG patterns, and novel burden metrics. By eliminating the need for programming
+              knowledge and offering immediate, downloadable results, SPA enables clinicians and
+              researcherstoexplorePSG-derivedphenotypes,supporthypothesisgeneration,educa-
+              tion,research,andbetterunderstandhowsleepphysiologyisquantified.Furthermore,
+                                       3                                          
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 4 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                 SPA is also a platform for disseminating novel sleep phenotypes, ensuring that new
+                 phenotypes proposed in the literature are publicly accessible.   
+                                                                                  
+                 2 Methods                                                        
+                                                                                  
+                 2.1 Website Design                                               
+                 SPAoperatesbyallowinguserstouploadasleeprecordingfileinEuropeanDataFor-
+                 mat (EDF) and then download extracted phenotypes in a tabular comma separated
+                 values(CSV)format.Thewebapplicationutilizesaserver-renderedarchitecturebuilt
+                 on Flask with a glassmorphic UI design implemented through JavaScript and Cas-
+                 cading Style Sheets (CSS). Data visualization is primarily handled by Plotly.js for
+                 interactive plots. The backend uses MNE [23] for signal processing. An example sleep
+                 recordinginEDFformatandanexampleannotationfileinCSVformatareprovided.
+                 SPA is licensed under CC BY-NC 4.0 for non-commercial use.       
+                 2.2 Implemented Phenotypes                                       
+                                                                                  
+                 For sleep stages and events, the user has the option to either upload annotation file
+                 or run automatic AI analysis, where the latter is implemented by Complete AI Sleep
+                 Report (CAISR) [24] for automatic sleep staging, arousal detection, apnea detection,
+                 and limb movement detection. The CAISR analytical components, including prepro-
+                 cessing, sleep staging, arousal detection, respiratory-event detection, limb-movement
+                 detection, and report generation, are packaged in task-specific Docker containers to
+                 isolate software dependencies and facilitate reproducible execution. These containers
+                 are supported on Linux and, on macOS, through Colima, with x86-64 emulation used
+                 for selected legacy CAISR environments on Apple Silicon. Apnea detection includes
+                 obstructive,central,andmixedapnea,andhypopnea.CAISRwasdevelopedusingfour
+                 diverse and large datasets including 25,749 participants and was externally validated
+                 in three datasets annotated by multiple experts. CAISR achieved non-inferiority per-
+                 formancecomparedtohumanexpertsbasedoninter-rateragreementinsleepstaging,
+                 arousal detection, and limb movement detection in all external datasets, as well as
+                 non-inferiorityperformanceinapneadetectionin2/3externaldatasets.Ahypnogram
+                 (30-second epochs) and a hypnodensity graph [25] are shown on the SPA webpage
+                 after generation. Common sleep architecture parameters (i.e., macrostructure) and
+                 apnea-hypopnea index (AHI), arousal index (ArI), hypoxic burden [26], arousal bur-
+                 den (AB) [27], and periodic limb movement index (PLMI) are downloadable. When
+                 CAISRisusedforautomaticapneadetectionortheuploadedannotationfilecontains
+                 apneasubtypes,SPAcomputesobstructiveAHI,centralAHI,mixedAHI,andhypop-
+                 nea index during rapid eye movement (REM) stage, Non-REM (NREM) stage, and
+                 total sleep time conditions.                                     
+                   For EEG-derived phenotypes, there are spectrogram (time-frequency representa-
+                 tion) and average band power across sleep stages. The spectrogram is implemented
+                 by applying multitaper spectral analysis [28, 29] to 30-second epochs. The spectro-
+                 gram is converted into decibel scale with a unit of 10log (µV2/Hz). A spectrogram
+                                                   10                             
+                                          4                                       
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 5 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+              is shown on the SPA webpage after generation. The band powers include delta (1-
+              4Hz), theta (4-8Hz), alpha (8-12Hz), sigma (11-15Hz), and beta (12-30Hz). Spindle
+              andslowoscillation(SO)aredetectedusingLuna[17].Thespindlephenotypesinclude
+              density, frequency, duration, amplitude, and chirp (within-spindle frequency change
+              rate). Spindles are detected at each EEG channel, and stratified by fast/slow/all as
+              well as SO-coupled/uncoupled. The SO phenotypes include density, amplitude, slope,
+              and duration. The spindle-SO coupling phenotypes include their overlap percentage
+              and phase angles. For spindle detection quality control, the user can specify the qual-
+              ity cutoff (default 1) at the webpage that determines how much the detected spindles
+              should stand out from the background. There is also EEG-based brain age (BA) [30]
+              for adults. Brain age estimates the age from sleep EEG patterns. A higher brain age
+              compared to the chronological age (CA), or a more positive brain age index (BAI =
+              BA - CA) indicates accelerated brain aging and is associated with mortality [31] and
+              future dementia at the population level [32].                       
+                For respiration-oximetry-derived phenotypes, there are hypoxic burden (HB) [26,
+              33]andself-similarity[34].Here,weprovidedacustomimplementationofHBaccord-
+              ing to the paper which quantifies the area under the desaturation curve for each
+              desaturation event [33], combining both depth and duration of oxygen drops. These
+              event-specific areas are then summed across the night and normalized to total sleep
+              time to yield a burden value. HB measures the cumulative impact of oxygen desat-
+              urations during sleep, reflecting the physiological stress of recurrent hypoxemia on
+              cardiovascular and metabolic systems. Self-similarity refers to the cyclical repeti-
+              tion of waxing-and-waning breathing patterns during sleep, reflecting high loop gain,
+              i.e., instability in ventilatory control [34]. It is measured from respiratory inductance
+              plethysmography (RIP) signals by detecting central apneas/hypopneas and quanti-
+              fying the similarity of consecutive cycles using cross-correlation. A similarity index
+              greater than 0.8 indicates strongly repeating cycles, and “full night similarity” is the
+              fraction of total sleep time with such high similarity.             
+                For ECG-derived phenotypes, we provided heart rate variability (HRV) [35] met-
+              rics. The HRV metrics cover time-domain, frequency-domain, andcomplexity-domain
+              features,stratifiedbysleepstages.Thereare25metrics,includingmean(nni),sd(nni),
+              nni50, pnni50, nni20, pnni20, median(nni), range(nni), cv(nni), rmssd, sdsd, cvsd,
+              mean(hr), max(hr), min(hr), std(hr), lf, hf, lfnu, hfnu, lf/hf ratio, vlf, sd1, sd2, and
+              sd2/sd1 ratio as implemented in the hrvanalysis Python package.     
+                To better inform the users, each phenotype is explained in a separate documen-
+              tation webpage after clicking the question mark next to the phenotype name, with
+              the following sections: Overview, Output Phenotypes, Clinical Implication (including
+              actionable thresholds, if available), Strengths, Limitations, Calculation Method, and
+              Reference.                                                          
+              2.3 Adding New Phenotypes                                           
+              Advanced user can add new phenotypes, especially for authors who publish
+              new sleep phenotypes and aim to make them accessible to clinicians and
+              researchers. This function requires coding. SPA provides a unified Python function
+              get_custom_phenotype()withastandardinputandoutputarguments.Theusercan
+                                       5                                          
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 6 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                 first provide the implemented function in the text box on the SPA webpage. Once it
+                 can run on the example EDF file, the user can contact the maintainers of SPA to add
+                 it permanently. The details have been explained in the documentation webpage after
+                 clicking the question mark sign. An important direction in future versions is to add
+                 phenotypes from pediatric sleep studies.                         
+                 2.4 Data Security and Privacy                                    
+                                                                                  
+                 Users are responsible for ensuring data privacy, including confirming that uploaded
+                 sleep recordings and annotation files have been de-identified, a function commonly
+                 provided in clinical PSG software. SPA displays a warning message before upload
+                 to remind the user of this requirement. Each analysis is performed within a unique,
+                 access-restricted job directory containing the uploaded recording and all generated
+                 intermediate and output files. File deletion is implemented within strict failure-
+                 handling logic and is performed after both successful and failed processing attempts,
+                 including parser, signal-processing, subprocess, cancellation, and timeout errors.
+                 Cleanup is completed before the analysis is reported as finished. SPA also performs
+                 a startup purge of abandoned upload and processing files older than the configured
+                 retention period, which is one hour by default, to address files remaining after abrupt
+                 server or machine termination. Cleanup operations are restricted to configured SPA
+                 storagedirectoriesandareloggedwithoutincludinguploadedfilenames,physiological
+                 signals, annotations, or other protected health information.     
+                 3 Results                                                        
+                                                                                  
+                 SPA is available at https://sleep-phenomics-spa.ngrok.app/. After logging in, users
+                 can upload signal files in the European Data Format (EDF), which can be exported
+                 by many PSG software. Then, the user is taken to a screen where they can map
+                 channels from their uploaded EDF file to a standardized list of channel names. If a
+                 user is missing a channel or wishes to exclude it, they can select “Does not exist”.
+                 After channel mapping, users are directed to a webpage where they can select the
+                 phenotypes to compute and see the signals in an interactive viewer (Figure 1). The
+                 users then click the “Compute Phenomics” button, and wait for the computation to
+                 complete. After completion, the “Compute Phenomics” button becomes “Download
+                 Phenomics”. Users can download sleep phenomics in tabular CSV format and the
+                 resulting figures are displayed on the webpage (Figure 2).       
+                   SPA allows adding new phenotypes (Figure 3), where we have provided detailed
+                 documentation with examples. However, we assume users who wants to add new phe-
+                 notypes have coding ability. Therefore, the typical users would be researchers who
+                 have developed and published new PSG-based markers, and who want to make their
+                 phenotype available to the public without coding burden.         
+                   To test SPA, an example EDF file was loaded (included in SPA), which has
+                 204.2MB with 26 channels and 7.1 hours long. We ran all phenotypes on a machine
+                 with Intel(R) Xeon(R) W-2145 CPU 3.70GHz and 128GB of memory. The running
+                 time scale is shown in Table 1.                                  
+                                                                                  
+                                          6                                       
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 7 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                UsingSPA,wecreatedascatterplotofagevs.thedeltabandpower(1-4Hz)during
+              N3 at C4-M1 channel in 50 random male participants from the Sleep Heart Health
+              Study (SHHS) [36] hosted on National Sleep Research Resource (NSRR) [19, 20] in
+              Figure4.Theparticipantswererandomlysampledtospanages40to80yearsold.We
+              observedadecreasingtrendwithincreasingage,asexpectedfrompriorliterature[37].
+              4 Discussion                                                        
+                                                                                  
+              SPA represents a practical step to a broader access to PSG-derived phenotypes. SPA
+              isfullyweb-basedandrequiresnocodingorinstallation,whichwilllowerthetechnical
+              barrierthathaslimitedtheuseofPSG-derivedphenotypesbytrainees,clinicians,and
+              researchers. SPA is an educational and research-facing platform that provides access
+              to state-of-the-art sleep phenotypes.                               
+                The current implementation of SPA does not and will not include all phenotypes,
+              as new phenotypes are constantly proposed in the literature. New phenotypes are
+              encouraged to be added. For example, PSG-based apnea endotyping holds promise
+              to disentangle the heterogeneous nature of sleep apnea, where various PSG-based
+              algorithms have been proposed [38–40]; Automated detection of cyclic alternating
+              pattern (CAP) [41, 42] will help the clinician understand the patient’s sleep stability
+              and fatigue symptoms [43]; EMG-derived phenotypes need to be added, such as sleep
+              atonia index (SAI) [44, 45]. SAI reflects the degree of muscle atonia during REM. A
+              reducedSAIisindicativeofREMsleepbehaviordisorder(RBD),andcanhelpidentify
+              patientsatriskforParkinson’sdisease[46].Importantly,cross-organcouplingmetrics
+              are encouraged. For example, ∆HR quantifies the heart rate response to respiratory
+              events,reflectingautonomicnervoussystemactivationandstressfromsleep-disordered
+              breathing [47]. We also encourage phenotypes targeted at the pediatric population,
+              such as sleep staging [48] and brain age [49].                      
+                SPA can be used to help users explore and contextualize visual findings from PSG
+              recordings. For example, an EEG alpha-delta finding [50] can be confirmed by the
+              spectrogram;abenzodiazepinemedicationeffectleadingtoexcessivespindlingcanbe
+              confirmed by a strong sigma band in the spectrogram; deep desaturations associated
+              with apneic events can be confirmed by elevated hypoxic burden; REM-dominant
+              sleep apnea can be confirmed by a higher obstructive AHI than central AHI; and
+              Cheyne-Stokes breathing can be confirmed by strong self-similarity metrics.
+                SPA can be used for hypothesis generation [51]. For example, a researcher may
+              explore whether high respiratory self-similarity values suggest unstable ventilatory
+              control patterns in a PSG recording. Follow-up recordings or external datasets could
+              then be used to examine whether these patterns are reproducible across individu-
+              als or conditions. This approach supports endophenotyping and research hypothesis
+              generation,whileclinicalinterpretationortreatmentdecisionisthedownstreamtask.
+                SPAhasseverallimitations.(1)SPAisnotdesignedforbatchprocessing,i.e.,pro-
+              cessing multiple sleep recordings at once, because the current implementation focuses
+              on interactive single-recording exploration, visualization, and phenotype extraction.
+              (2)WhileSPAautomatesfeatureextraction,theclinicalinterpretationofsleeppheno-
+              types and the determination of actionable thresholds still requires domain expertise.
+                                       7                                          
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 8 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                 (3) SPA relies on the quality of EDF data provided, meaning that missing or noisy
+                 channels can limit the reliability of certain extracted phenotypes. (4) As a web-based
+                 platform, although SPA implements warnings for patient privacy data and immedi-
+                 ate deletion after analysis, it may still require appropriate institutional approval and
+                 secure data handling.                                            
+                 Supplement                                                       
+                                                                                  
+                 Acknowledgment                                                   
+                                                                                  
+                 The authors would like to thank the Academic & Research Computing services and
+                 BILH IT Cyber Security at Beth Israel Deaconess Medical Center, including Justin
+                 Turcotte and Stephen J. Berry.                                   
+                                                                                  
+                 Funding                                                          
+                                                                                  
+                 HS is supported by the American Academy of Sleep Medicine Foundation 370-
+                 SR-25. MBW is supported by grants from the NIH (R01AG073410, R01HL161253,
+                 R01NS126282, R01AG073598, R01NS131347, R01NS130119).             
+                 Conflict of interest                                             
+                                                                                  
+                 MBW  is a co-founder, scientific advisor and consultant to Beacon Biosignals and
+                 has a personal equity interest in the company. RJT reports: (1) patent and licence
+                 to MyCardio LLC, for ECG-spectrogram; (2) grant support, licence and intellectual
+                 property(licensedpatents)fromDeVilbiss-DriveHealthcare;(3)unlicensedpatentfor
+                 a device regulation CO2 during positive pressure therapy, for central sleep apnea; (4)
+                 patent submitted for respiratory self-similarity for estimation of expressed high loop
+                 gain; (5) patent submitted for Enhanced Expiratory Rebreathing Space for treatment
+                 of high loop gain sleep apnea; (6) general sleep medicine consulting: GLG Councils,
+                 Guidepoint Global; (5) Consultant-Jazz Pharmaceuticals.          
+                 Data  availability                                               
+                                                                                  
+                 SPA is available for non-commercial use at https://sleep-phenomics-spa.ngrok.app/.
+                                                                                  
+                 Code  availability                                               
+                                                                                  
+                 The   SPA  code  is  hosted at   https://github.com/bdsp-core/   
+                 sleep-phenomics-automation.                                      
+                                                                                  
+                 Author  contribution                                             
+                 Conceptualization: HS, MBW, RJT; Data curation: MGA, SR, SW, NT, HS; Formal
+                 analysis: MGA, SR, SW; Funding acquisition: HS, MBW; Writing – original draft:
+                 MGA, SR, HS; Writing – review & editing: All authors.            
+                                                                                  
+                                                                                  
+                                          8                                       
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 9 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+              References                                                          
+              [1] Troester,M.M.,Quan,S.F.,Berry,R.B.,SleepMedicine,A.A.,etal.:TheAASM
+                 Manual for the Scoring of Sleep and Associated Events: Rules, Terminology and
+                 Technical Specifications. American Academy of Sleep Medicine, ??? (2023)
+                                                                                  
+              [2] Berry, R.B., Budhiraja, R., Gottlieb, D.J., Gozal, D., Iber, C., Kapur, V.K.,
+                 Marcus, C.L., Mehra, R., Parthasarathy, S., Quan, S.F., et al.: Rules for scoring
+                 respiratory events in sleep: update of the 2007 aasm manual for the scoring of
+                 sleepandassociatedevents:deliberationsofthesleepapneadefinitionstaskforce
+                 of the american academy of sleep medicine. Journal of clinical sleep medicine
+                 8(5), 597–619 (2012)                                             
+              [3] Sun, H., Adra, N., Ayub, M.A., Ganglberger, W., Ye, E., Fernandes, M., Paixao,
+                 L.,Fan,Z.,Gupta,A.,Ghanta,M.,et al.:Assessingriskofhealthoutcomesfrom
+                 brain activity in sleep: a retrospective cohort study. Neurology: Clinical Practice
+                 14(1), 200225 (2024)                                             
+                                                                                  
+              [4] Thapa, R., Kjaer, M.R., He, B., Covert, I., Moore IV, H., Hanif, U., Ganjoo,
+                 G., Westover, M.B., Jennum, P., Brink-Kjaer, A., et al.: A multimodal sleep
+                 foundation model for disease prediction. Nature Medicine, 1–11 (2026)
+              [5] Vallat, R., Shah, V.D., Walker, M.P.: Coordinated human sleeping brainwaves
+                 map peripheral body glucose homeostasis. Cell Reports Medicine 4(7) (2023)
+                                                                                  
+              [6] Zinchuk, A., Yaggi, H.K., Klar, Y., Qin, L., Purcell, S., Bravata, D.M., et al.:
+                 Polysomnographic phenotypes and their cardiovascular implications in obstruc-
+                 tive sleep apnoea. Thorax 73(5), 472–480 (2017)                  
+              [7] Allocca, G., Ma, S., Martelli, D., Cerri, M., Del Vecchio, F., Bastianini, S., Zoc-
+                 coli, G., Amici, R., Morairty, S.R., Aulsebrook, A.E., Blackburn, S., Lesku, J.A.,
+                 Rattenborg,N.C.,Vyssotski,A.L.,Wams,E.,Porcheret,K.,Wulff,K.,Foster,R.,
+                 Chan, J.K.M., Nicholas, C.L., Freestone, D.R., Johnston, L.A., Gundlach, A.L.:
+                 Validation of ‘somnivore’, a machine learning algorithm for automated scoring
+                 and analysis of polysomnography data. Frontiers in Neuroscience 13, 207 (2019)
+                 https://doi.org/10.3389/fnins.2019.00207                         
+                                                                                  
+              [8] Rani, S., Gao, E.Y., Ong, J.Z.E., Tan, N.K.W., Ng, A.C.W., Leong, Z.H., Phua,
+                 C.Q., Ong, T.H., Leow, L.C., Huang, G.-B., Tan, B.K.J., Toh, S.T.: Multichan-
+                 nel machine learning for polysomnographic diagnosis of obstructive sleep apnea:
+                 a bayesian meta-analysis. European Archives of Oto-Rhino-Laryngology (2025)
+                 https://doi.org/10.1007/s00405-025-09808-9                       
+              [9] Bazoukis,G.,Bollepalli,S.C.,Chung,C.T.,Li,X.,Tse,G.,Bartley,B.L.,Batool-
+                 Anwar, S., Quan, S.F., Armoundas, A.A.: Application of artificial intelligence in
+                 thediagnosisofsleepapnea.JournalofClinicalSleepMedicine19(7),1337–1363
+                 (2023) https://doi.org/10.5664/jcsm.10532                        
+                                                                                  
+                                                                                  
+                                       9                                          
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 10 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                 [10] Goldstein, C.A., Berry, R.B., Kent, D.T., Kristo, D.A., Seixas, A.A., Redline,
+                    S., Westover, M.B.: Artificial intelligence in sleep medicine: background and
+                    implications for clinicians. Journal of Clinical Sleep Medicine 16(4), 609–618
+                    (2020)                                                        
+                 [11] Sun,H.,Parekh,A.,Thomas,R.J.:Artificialintelligencecandrivesleepmedicine.
+                    Sleep Medicine Clinics 20(1), 81–91 (2025)                    
+                                                                                  
+                 [12] Dean,D.A.,Goldberger,A.L.,Mueller,R.,Kim,M.,Rueschman,M.,Mobley,D.,
+                    et al.:Scalingupscientificdiscoveryinsleepmedicine:thenationalsleepresearch
+                    resource. Sleep 39(5), 1151–1164 (2016)                       
+                 [13] Arun, M.G.: Neurohero: A qeeg and hrv based neural network for explain-
+                    able post-anoxic coma prognosis. In: 2024 IEEE MIT Undergraduate Research
+                    Technology Conference (URTC), pp. 1–5 (2024). https://doi.org/10.1109/
+                    URTC65039.2024.10937579                                       
+                                                                                  
+                 [14] Rahman, P., Nandi, A., Hebert, C.: Amplifying domain expertise in clinical
+                    data pipelines. JMIR Medical Informatics 8(11), 19612 (2020) https://doi.org/
+                    10.2196/19612                                                 
+                 [15] Rao, S., Arun, M.G., Thomas, R., Sun, H., Westover, M.B.: Enabling click-
+                    and-run access to artificial-intelligence-ready sleep parameters for clinicians and
+                    researchers. In: SLEEP, vol. 48, pp. 203–204 (2025). OXFORD UNIV PRESS
+                    INC JOURNALS DEPT, 2001 EVANS RD, CARY, NC 27513 USA          
+                                                                                  
+                 [16] Arun, M., Rao, S., Westover, M., Thomas, R., Sun, H.: Sleep phenomics and
+                    annotator: A website tool for individual-level sleep phenotype quantification for
+                    clinicians and researchers. Sleep Medicine 138, 108617 (2026) 
+                 [17] Purcell, S.M., Manoach, D.S., Demanuele, C., Cade, B.E., Mariani, S., Cox, R.,
+                    Panagiotaropoulou, G., Saxena, R., Pan, J.Q., Smoller, J.W., Redline, S., Stick-
+                    gold, R.: Characterizing sleep spindles in 11,630 individuals from the national
+                    sleepresearchresource.NatureCommunications8,15930(2017)https://doi.org/
+                    10.1038/ncomms15930                                           
+                                                                                  
+                 [18] Goldberger, A.L., Amaral, L.A.N., Glass, L., Hausdorff, J.M., Ivanov, P.C.,
+                    Mark, R.G., Mietus, J.E., Moody, G.B., Peng, C.-K., Stanley, H.E.: Phys-
+                    ioBank,PhysioToolkit,andPhysioNet:Componentsofanewresearchresourcefor
+                    complex physiologic signals. Circulation 101(23), 215–220 (2000 (June 13)). Cir-
+                    culation Electronic Pages: http://circ.ahajournals.org/content/101/23/e215.full
+                    PMID:1085218; doi: 10.1161/01.CIR.101.23.e215                 
+                 [19] Zhang, G.-Q., Cui, L., Mueller, R., Tao, S., Kim, M., Rueschman, M., Mariani,
+                    S., Mobley, D., Redline, S.: The national sleep research resource: towards a sleep
+                    datacommons.JournaloftheAmericanMedicalInformaticsAssociation25(10),
+                    1351–1358 (2018)                                              
+                                                                                  
+                                                                                  
+                                          10                                      
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 11 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+              [20] Zhang, Y., Kim, M., Prerau, M., Mobley, D., Rueschman, M., Sparks, K., Tully,
+                 M., Purcell, S., Redline, S.: The national sleep research resource: making data
+                 findable, accessible, interoperable, reusable and promoting sleep science. Sleep
+                 47(7), 088 (2024)                                                
+              [21] Perslev, M., Darkner, S., Kempfner, L., Nikolic, M., Jennum, P.J., Igel, C.: U-
+                 sleep:resilienthigh-frequencysleepstaging.NPJdigitalmedicine4(1),72(2021)
+                                                                                  
+              [22] Combrisson, E., Vallat, R., Eichenlaub, J.-B., O’Reilly, C., Lajnef, T., Guil-
+                 lot, A., et al.: Visbrain: A multi-purpose gpu-accelerated open-source suite for
+                 multimodalbraindatavisualization.FrontiersinNeuroinformatics13,14(2019)
+              [23] Gramfort,A.,Luessi,M.,Larson,E.,Engemann,D.A.,Strohmeier,D.,Brodbeck,
+                 C.,Goj,R.,Jas,M.,Brooks,T.,Parkkonen,L.,et al.:Megandeegdataanalysis
+                 with mne-python. Frontiers in Neuroinformatics 7, 267 (2013)     
+                                                                                  
+              [24] Nasiri, S., Ganglberger, W., Nassi, T.E., Meulenbrugge, E.-J., Moura Junior,
+                 V., Ghanta, M., Gupta, A., Stone, K.L., Kjaer, M.R., Sum-Ping, O., Mignot,
+                 E., Hwang, D., Trotti, L.M., Clifford, G.D., Katwa, U., Sun, H., Thomas, R.J.,
+                 Westover, M.B.: Caisr: achieving human-level performance in automated sleep
+                 analysis across all clinical sleep metrics. Sleep 48(8), 134 (2025) https://doi.org/
+                 10.1093/sleep/zsaf134                                            
+              [25] Stephansen,J.B.,Olesen,A.N.,Olsen,M.,Ambati,A.,Leary,E.B.,Moore,H.E.,
+                 Carrillo, O., Lin, L., Han, F., Yan, H., et al.: Neural network analysis of sleep
+                 stagesenablesefficientdiagnosisofnarcolepsy.Naturecommunications9(1),5229
+                 (2018)                                                           
+                                                                                  
+              [26] Azarbarzin, A., Sands, S.A., Stone, K.L., Taranto-Montemurro, L., Messineo, L.,
+                 Terrill, P.I., et al.: The hypoxic burden of sleep apnoea predicts cardiovascular
+                 disease-related mortality: the osteoporotic fractures in men study and the sleep
+                 heart health study. European Heart Journal 40(14), 1149–1157 (2019)
+              [27] Shahrbabaki, S.S., Linz, D., Hartmann, S., Redline, S., Baumert, M.: Sleep
+                 arousal burden is associated with long-term all-cause and cardiovascular mortal-
+                 ity in 8001 community-dwelling older men and women. European heart journal
+                 42(21), 2088–2099 (2021)                                         
+                                                                                  
+              [28] Thomson, D.J.: Spectrum estimation and harmonic analysis. Proceedings of the
+                 IEEE 70(9), 1055–1096 (1982)                                     
+              [29] Prerau, M.J., Brown, R.E., Bianchi, M.T., Ellenbogen, J.M., Purdon, P.L.: Sleep
+                 neurophysiological dynamics through the lens of multitaper spectral analysis.
+                 Physiology 32(1), 60–92 (2017)                                   
+                                                                                  
+              [30] Sun, H., Paixao, L., Oliva, J.T., Goparaju, B., Carvalho, D.Z., Leeuwen, K.G.,
+                 Akeju, O., Thomas, R.J., Cash, S.S., Bianchi, M.T., Westover, M.B.: Brain
+                                                                                  
+                                                                                  
+                                       11                                         
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 12 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                    age from the electroencephalogram of sleep. Neurobiology of Aging 74, 112–120
+                    (2019) https://doi.org/10.1016/j.neurobiolaging.2018.10.016   
+                 [31] Paixao, L., Sikka, P., Sun, H., Jain, A., Hogan, J., Thomas, R., Westover,
+                    M.B.: Excess brain age in the sleep electroencephalogram predicts reduced life
+                    expectancy. Neurobiology of aging 88, 150–155 (2020)          
+                                                                                  
+                 [32] Sun, H., Milton, S., Fang, Y., Taha, H.B., Shiju, S., Thomas, R.J., Ganglberger,
+                    W.,Pase,M.P.,Hughes,T.,Purcell,S.,et al.:Machinelearning–basedsleepelec-
+                    troencephalographicbrainageindexanddementiarisk:anindividualparticipant
+                    data meta-analysis. JAMA Network Open 9(3), 261521 (2026)     
+                 [33] Esmaeili, N., Labarca,G., Hu, W.-H., Vena,D., Messineo, L., Gell, L., Hajipour,
+                    M., Taranto-Montemurro, L., Sands, S.A., Redline, S., et al.: Hypoxic burden
+                    based on automatically identified desaturations is associated with adverse health
+                    outcomes. Annals of the American Thoracic Society 20(11), 1633–1641 (2023)
+                                                                                  
+                 [34] Oppersma, E., Ganglberger, W., Sun, H., Thomas, R.J., Westover, M.B.: Algo-
+                    rithm for automatic detection of self-similarity and prediction of residual central
+                    respiratory events during continuous positive airway pressure. Sleep 44(4), 215
+                    (2021) https://doi.org/10.1093/sleep/zsaa215                  
+                 [35] Thomas,R.J.,Mietus,J.E.,Peng,C.-K.,Goldberger,A.L.:Anelectrocardiogram-
+                    based technique to assess cardiopulmonary coupling during sleep. Sleep 28(9),
+                    1151–1161 (2005)                                              
+                                                                                  
+                 [36] Quan, S.F., Howard, B.V., Iber, C., Kiley, J.P., Nieto, F.J., O’Connor, G.T.,
+                    Rapoport, D.M., Redline, S., Robbins, J., Samet, J.M., et al.: The sleep heart
+                    health study: design, rationale, and methods. Sleep 20(12), 1077–1085 (1997)
+                 [37] Sun, H., Ye, E., Paixao, L., Ganglberger, W., Chu, C.J., Zhang, C., Rosand, J.,
+                    Mignot,E.,Cash,S.S.,Gozal,D.,etal.:Thesleepandwakeelectroencephalogram
+                    over the lifespan. Neurobiology of aging 124, 60–70 (2023)    
+                                                                                  
+                 [38] Finnsson,E.,O´lafsd´ottir,G.H.,Loftsd´ottir,D.L.,J´onsson,S.Æ.,Helgad´ottir,H.,
+                    Agustsson, J.S., Sands, S.A., Wellman, A.: A scalable method of determining
+                    physiologicalendotypesofsleepapneafromapolysomnographicsleepstudy.Sleep
+                    44(1), 168 (2021)                                             
+                 [39] Dutta,R.,Delaney,G.,Toson,B.,Jordan,A.S.,White,D.P.,Wellman,A.,Eckert,
+                    D.J.: A novel model to estimate key obstructive sleep apnea endotypes from
+                    standardpolysomnographyandclinicaldataandtheircontributiontoobstructive
+                    sleep apnea severity. Annals of the American Thoracic Society 18(4), 656–667
+                    (2021)                                                        
+                                                                                  
+                 [40] Nassi, T., Amidi, Y., Oppersma, E., Donker, D.W., Redeker, N.S., Westover,
+                    M.B., Thomas, R.J.: Unraveling sleep apnea dynamics: quantifying loop gain
+                                                                                  
+                                                                                  
+                                          12                                      
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 13 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                 using dynamical modeling of ventilatory control. SLEEPJ 49(2), 213 (2026)
+                                                                                  
+              [41] Parrino,L.,Ferri,R.,Bruni,O.,Terzano,M.G.:Cyclicalternatingpattern(cap):
+                 the marker of sleep instability. Sleep medicine reviews 16(1), 27–45 (2012)
+              [42] Hartmann, S., Baumert, M.: Automatic a-phase detection of cyclic alternating
+                 patterns in sleep using dynamic temporal information. IEEE Transactions on
+                 Neural Systems and Rehabilitation Engineering 27(9), 1695–1703 (2019)
+                                                                                  
+              [43] Guilleminault,C.,Lopes,M.C.,Hagen,C.C.,DaRosa,A.:Thecyclicalternating
+                 pattern demonstrates increased sleep instability and correlates with fatigue and
+                 sleepinessinadultswithupperairwayresistancesyndrome.Sleep30(5),641–647
+                 (2007)                                                           
+              [44] Ferri, R., Franceschini, C., Zucconi, M., Vandi, S., Poli, F., Bruni, O., Cipolli,
+                 C., Montagna, P., Plazzi, G.: Searching for a marker of rem sleep behavior dis-
+                 order: submentalis muscle emg amplitude analysis during sleep in patients with
+                 narcolepsy/cataplexy. Sleep 31(10), 1409–1417 (2008)             
+                                                                                  
+              [45] Ferri,R.,Manconi,M.,Plazzi,G.,al.:Improvedcomputationoftheatoniaindex
+                 innormalcontrolsandpatientswithremsleepbehaviordisorder.SleepMedicine
+                 11(9), 947–949 (2010) https://doi.org/10.1016/j.sleep.2010.06.003
+              [46] Sixel-D¨oring, F., Trautmann, E., Mollenhauer, B., Trenkwalder, C.: Associated
+                 factors for rem sleep behavior disorder in parkinson disease. Neurology 77(11),
+                 1048–1054 (2011)                                                 
+                                                                                  
+              [47] Azarbarzin, A., Sands, S.A., Younes, M., Taranto-Montemurro, L., Sofer, T.,
+                 Vena,D.,Alex,R.M.,Kim,S.-W.,Gottlieb,D.J.,White,D.P.,Redline,S.,Well-
+                 man,A.:Thesleepapnea-specificpulse-rateresponsepredictscardiovascularmor-
+                 bidityandmortality.AmericanJournalofRespiratoryandCriticalCareMedicine
+                 203(12), 1546–1555 (2021) https://doi.org/10.1164/rccm.202010-3900OC
+              [48] Tripathi, A., Gupta, A., Ganglberger, W., Waters, S., Sun, H., Nasiri, S., Mitra,
+                 A.,Stone,K.L.,Mignot,E.,Hwang,D.,etal.:Pediatricsleepnet:adeeplearning
+                 network for reliable pediatric sleep staging across developmental stages. Sleep,
+                 064 (2026)                                                       
+              [49] Iyer, K.K., Staton, S., Collaro, A., Kevat, A., Vanhatalo, S., Roberts, J.A.,
+                 Chawla, J., Stevenson, N.J.: Decoding brain age predictions from sleep elec-
+                 troencephalographyacrossinfancytoadolescence.ScientificReports15(1),41590
+                 (2025)                                                           
+                                                                                  
+              [50] Manu, P., Lane, T.J., Matthews, D.A., Castriotta, R.J., Watson, R.K., Abeles,
+                 M.: Alpha-delta sleep in patients with a chief complaint of chronic fatigue.
+                 Southern medical journal 87(4), 465–470 (1994)                   
+                                                                                  
+                                                                                  
+                                                                                  
+                                       13                                         
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 14 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                 [51] Zhu,S.,Reddy,M.,Yen,J.:Hypothesis-drivenstorybuildingframework:Enhanc-
+                    ing iterative process support in clinical diagnostic decision support systems. In:
+                    AMIA Annual Symposium Proceedings, vol. 2009, p. 740 (2009)   
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                          14                                      
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+
+===== PAGE 15 =====
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+              Tables                                                              
+                                                                                  
+                                                                                  
+                      Table 1 Runningtimescaleforphenotypescurrentlyimplemented   
+                      inSPAforoneexampleEDFfile                                   
+                       Operation       Approximate Running Time                   
+                       SleepstagingusingCAISR 10minutes                           
+                       Spectrogramandbandpower 10seconds                          
+                       Spindleandslowoscillation 15minutes                        
+                       Brainage              2minutes                             
+                       Hypoxicburden         10seconds                            
+                       Self-similarity       2minutes                             
+                       HeartRateVariability  1minute                              
+                       CardiopulmonaryCoupling 1minute                            
+                                                                                  
+              Figure Captions                                                     
+                                                                                  
+                   Figure 1. Users can upload a de-identified EDF file or use the example EDF
+                         file. The signals are then displayed with full navigation functions.
+                         The available phenotypes are provided as check boxes, from which
+                         the users can choose.                                    
+                   Figure 2. The resulting figures, such as hypnogram, hynodensity, and EEG
+                         spectrogram are shown on the webpage.                    
+                   Figure 3. SPA allows adding custom phenotype.                  
+                   Figure 4. Scatterplotofagevs.deltabandpoweratC4-M1channelduringN3
+                         in 50 random male participants from the Sleep Heart Health Study
+                         (SHHS).                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                       15                                         
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
