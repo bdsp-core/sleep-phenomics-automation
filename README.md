@@ -2,18 +2,18 @@
 
 ## Supported PSG uploads
 
-SPA accepts EDF/BDF recordings through the existing native pipeline and XDF recordings
-through an additional `pyxdf` ingestion path. XDF numeric time-series streams are
-normalized to an internal EDF so visualization and phenomics behavior remains shared.
-Marker streams are aligned to the selected signal clock and stored as EDF annotations.
+SPA accepts PSG signal recordings in EDF format through the existing native processing
+pipeline. XDF physiological time-series streams are not accepted as PSG signal uploads.
 
-For XDF files, SPA automatically selects the signal only when exactly one numeric stream
-is available. If several numeric streams are plausible, the upload screen asks the user
-to choose using stream name, type, channel/sample counts, and nominal rate. Missing rates
-are inferred from timestamps; irregular streams are linearly resampled. Missing channel
-labels become `Channel N`, and unknown units are treated as microvolts with a warning.
-XDF metadata not representable in EDF remains visible during stream selection
-but is not persisted after normalization.
+Annotation uploads accept TXT, CSV, TSV, XLS, XLSX, and XDF files. SPA supports both
+Lab Streaming Layer XDF marker streams (through `pyxdf`) and Polysmith/OpenXDF XML
+annotation exports. Both variants are converted to the existing `Onset`, `Duration`, and
+`Description` table used by the annotation-mapping workflow. OpenXDF uses the document's
+default scorer when one is identified and otherwise selects the scorer with the most
+complete stage/event set. Numeric OpenXDF stages are normalized to W, N1, N2, N3, and R.
+For LSL XDF, a signal stream may establish the recording time origin, but its samples are
+not imported. An annotation-only LSL XDF uses its first marker as time zero. Missing LSL
+marker durations are inferred from the next marker, with a 30-second final-marker fallback.
 
 ## Security and privacy
 

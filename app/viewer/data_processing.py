@@ -7,7 +7,6 @@ from ..models.user import User, PSGFile, DerivedFile, PSGFileType
 from .. import db
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
-from .xdf_parser import convert_xdf_to_edf
 
 MONTAGE_CHANNELS = [
     'F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1',
@@ -23,15 +22,15 @@ class PSGDataManager:
     def save_uploaded_file(cls, uploaded_file: FileStorage, user: User) -> PSGFile:
         """Saves an uploaded EEG file and creates database entry."""
         storage_path = None
-        conversion = None
+        ext = ''
         try:
             safe_name = secure_filename(uploaded_file.filename or '')
             if not safe_name:
                 raise ValueError("Invalid filename")
             base, ext = os.path.splitext(safe_name)
             ext = ext.lower()
-            if ext not in ['.edf', '.bdf', '.xdf']:
-                raise ValueError("Unsupported file type. Please upload an EDF, BDF, or XDF file.")
+            if ext != '.edf':
+                raise ValueError("Unsupported PSG file type. Please upload an EDF file.")
 
             filename = f"{base}{ext}"
             user_path = os.path.join(current_app.config['DATA_PATH'], str(user.id))
@@ -44,25 +43,6 @@ class PSGDataManager:
                 uploaded_file.content_length,
             )
             uploaded_file.save(storage_path)
-
-            if ext == '.xdf':
-                xdf_path = storage_path
-                # The rest of SPA intentionally continues to consume EDF. Keeping the
-                # derived name distinct also prevents foo.edf/foo.xdf collisions.
-                storage_path = os.path.join(user_path, f"{base}.from_xdf.edf")
-                current_app.logger.info("[xdf] Initializing parser size=%d", os.path.getsize(xdf_path))
-                try:
-                    selected_stream_id = getattr(uploaded_file, 'selected_stream_id', None)
-                    conversion = convert_xdf_to_edf(xdf_path, storage_path, selected_stream_id)
-                    current_app.logger.info(
-                        "[xdf] Streams discovered=%d selected=%d markers=%d warnings=%d",
-                        len(conversion.streams), conversion.selected_stream_id,
-                        conversion.marker_count, len(conversion.warnings),
-                    )
-                    current_app.logger.info("[xdf] Transformation to internal EDF completed")
-                finally:
-                    if os.path.exists(xdf_path):
-                        os.remove(xdf_path)
 
             raw = mne.io.read_raw_edf(storage_path, preload=False)
             psg_file = PSGFile(
@@ -80,14 +60,10 @@ class PSGDataManager:
 
             db.session.add(psg_file)
             db.session.commit()
-            psg_file.xdf_conversion = conversion
             return psg_file
         except Exception as e:
             db.session.rollback()
-            # XDF conversion writes atomically. On a parse/selection failure the
-            # destination may belong to an earlier upload and must not be removed.
-            if (storage_path and os.path.exists(storage_path)
-                    and (ext != '.xdf' or conversion is not None)):
+            if storage_path and os.path.exists(storage_path):
                 os.remove(storage_path)
             raise
 

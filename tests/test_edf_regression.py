@@ -20,11 +20,11 @@ def test_representative_edf_remains_readable_with_identical_metadata(tmp_path):
     np.testing.assert_allclose(after.get_data(), before.get_data())
 
 
-def test_edf_upload_still_uses_the_native_reader_and_xdf_is_additive():
+def test_psg_upload_accepts_only_edf_and_uses_the_native_reader():
     source = (Path(__file__).parents[1] / "app/viewer/data_processing.py").read_text()
-    assert "['.edf', '.bdf', '.xdf']" in source
+    assert "if ext != '.edf':" in source
     assert "raw = mne.io.read_raw_edf(storage_path, preload=False)" in source
-    assert "if ext == '.xdf':" in source
+    assert "convert_xdf_to_edf" not in source
 
 
 def test_cached_edf_handle_is_closed_and_evicted(monkeypatch):

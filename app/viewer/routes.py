@@ -32,7 +32,6 @@ import matplotlib.pyplot as plt
 from flask import Response, stream_with_context
 from .feature_extract import PSGFeatureComputation, FEATURE_RUNNING_TIMES
 from .data_processing import MONTAGE_CHANNELS
-from .xdf_parser import XDFError, XDFStreamSelectionRequired
 from .privacy_cleanup import JobWorkspace, UnsafeCleanupPath, safe_remove
 
 # In-memory store for phenomics computation jobs: job_id -> dict
@@ -187,7 +186,6 @@ def upload():
             current_app.logger.debug(f"[upload] Existing file found — deleting before replace")
             delete_psg_file(existing_file)
             current_app.logger.debug(f"[upload] Saving uploaded file (replace)")
-            uploaded_file.selected_stream_id = request.form.get('stream_id')
             psg_file = PSGDataManager.save_uploaded_file(uploaded_file, current_user)
 
         elif existing_file and action == 'rename':
@@ -204,26 +202,15 @@ def upload():
                 headers=uploaded_file.headers
             )
             current_app.logger.debug(f"[upload] Saving uploaded file (rename)")
-            modified_file.selected_stream_id = request.form.get('stream_id')
             psg_file = PSGDataManager.save_uploaded_file(modified_file, current_user)
 
         else:
             current_app.logger.debug(f"[upload] Saving uploaded file (new)")
-            uploaded_file.selected_stream_id = request.form.get('stream_id')
             psg_file = PSGDataManager.save_uploaded_file(uploaded_file, current_user)
 
         current_app.logger.debug(f"[upload] File saved — redirecting to channel mapping")
         return redirect(url_for('viewer.channel_mapping', filename=psg_file.original_filename))
 
-    except XDFStreamSelectionRequired as e:
-        current_app.logger.info("[xdf] User selection required candidates=%d", len(e.streams))
-        return jsonify({
-            'status': 'selection_required', 'file_type': 'xdf', 'code': e.code,
-            'message': e.public_message, 'streams': e.streams, 'warnings': [],
-        }), 409
-    except XDFError as e:
-        current_app.logger.warning("[xdf] Validation or parsing failed code=%s: %s", e.code, str(e))
-        return jsonify({'status': 'error', 'code': e.code, 'message': e.public_message}), 400
     except ValueError as e:
         return jsonify({'status': 'error', 'code': 'INVALID_UPLOAD', 'message': str(e)}), 400
     except Exception as e:
@@ -231,7 +218,7 @@ def upload():
         return jsonify({'status': 'error', 'code': 'UPLOAD_FAILED',
                         'message': 'The file could not be processed. Please verify it and try again.'}), 500
 
-_ANNOTATION_EXTS = {'.txt', '.csv', '.tsv', '.xlsx', '.xls'}
+_ANNOTATION_EXTS = {'.txt', '.csv', '.tsv', '.xlsx', '.xls', '.xdf'}
 
 
 def _is_safe_leaf_filename(filename):
@@ -268,7 +255,46 @@ def upload_annotation():
         return jsonify({'error': f'Unsupported format: {ext}'}), 400
     user_dir = os.path.join(current_app.config['DATA_PATH'], str(current_user.id))
     os.makedirs(user_dir, exist_ok=True)
-    uploaded_file.save(os.path.join(user_dir, safe_name))
+    upload_path = os.path.join(user_dir, safe_name)
+    uploaded_file.save(upload_path)
+    current_app.logger.info(
+        "[annotation-upload] received type=%s mime=%r size=%d",
+        ext[1:], uploaded_file.content_type, os.path.getsize(upload_path),
+    )
+    if ext == '.xdf':
+        from .annotation_parser import XDFAnnotationError, parse_xdf_annotations
+        converted_name = os.path.splitext(safe_name)[0] + '_xdf_annotations.csv'
+        converted_path = os.path.join(user_dir, converted_name)
+        try:
+            annotations = parse_xdf_annotations(upload_path)
+            annotations.to_csv(converted_path, index=False)
+            current_app.logger.info(
+                "[xdf-annotation] variant=%s sources=%d selected_source=%s "
+                "selection=%s annotations=%d",
+                annotations.attrs.get("xdf_variant", "lsl"),
+                annotations.attrs.get("xdf_stream_count", 0),
+                annotations.attrs.get("xdf_selected_scorer_index", "automatic"),
+                annotations.attrs.get("xdf_scorer_selection", "automatic"),
+                len(annotations),
+            )
+            safe_name = converted_name
+        except XDFAnnotationError as error:
+            if os.path.exists(converted_path):
+                safe_remove(converted_path, user_dir)
+            current_app.logger.warning(
+                "[xdf-annotation] parsing failed error_type=%s", type(error).__name__
+            )
+            return jsonify({'error': error.public_message, 'code': 'XDF_ANNOTATION_PARSE_FAILED'}), 400
+        except Exception as error:
+            if os.path.exists(converted_path):
+                safe_remove(converted_path, user_dir)
+            current_app.logger.error(
+                "[xdf-annotation] conversion failed error_type=%s", type(error).__name__
+            )
+            return jsonify({'error': 'The XDF annotation file could not be processed.'}), 500
+        finally:
+            if os.path.exists(upload_path):
+                safe_remove(upload_path, user_dir)
     return jsonify({'redirect': url_for('viewer.annotation_mapping',
                                         annot_file=safe_name,
                                         edf_file=edf_filename)})

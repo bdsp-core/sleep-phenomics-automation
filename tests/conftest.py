@@ -19,4 +19,4 @@ def load_source_module(name, relative_path):
 def pytest_configure():
     # app.viewer eagerly imports every optional phenotype backend. Parser tests
     # deliberately isolate the ingestion boundary instead.
-    load_source_module("spa_xdf_parser", "app/viewer/xdf_parser.py")
+    load_source_module("spa_annotation_parser", "app/viewer/annotation_parser.py")
